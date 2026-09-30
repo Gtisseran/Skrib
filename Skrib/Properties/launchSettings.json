@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Skrib (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Skrib (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
