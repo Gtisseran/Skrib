@@ -126,7 +126,7 @@ namespace Skrib
             }
         }
 
-        #region Navigation Page Paramètres
+        #region Settings Page Navigation
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
@@ -156,7 +156,7 @@ namespace Skrib
 
         #endregion
 
-        #region Mises à jour GitHub
+        #region GitHub Updates
 
         private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
         {
@@ -172,11 +172,12 @@ namespace Skrib
                 switch (result.Status)
                 {
                     case UpdateCheckStatus.UpToDate:
+                    case UpdateCheckStatus.NoRelease:
                         UpdateInfoBar.Severity = InfoBarSeverity.Success;
-                        UpdateInfoBar.Title = isEn ? "You're up to date" : "Vous êtes à jour";
+                        UpdateInfoBar.Title = isEn ? "No update available" : "Aucune mise à jour disponible";
                         UpdateInfoBar.Message = isEn
-                            ? $"Skrib {result.LocalVersion} is the latest release."
-                            : $"Skrib {result.LocalVersion} est la dernière version.";
+                            ? $"You already have the latest version ({result.LocalVersion})."
+                            : $"Vous avez déjà la dernière version ({result.LocalVersion}).";
                         UpdateInfoBar.IsOpen = true;
                         break;
 
@@ -184,21 +185,12 @@ namespace Skrib
                         await ShowUpdateAvailableAsync(result);
                         break;
 
-                    case UpdateCheckStatus.NoRelease:
-                        UpdateInfoBar.Severity = InfoBarSeverity.Warning;
-                        UpdateInfoBar.Title = isEn ? "No release found" : "Aucune release trouvée";
-                        UpdateInfoBar.Message = isEn
-                            ? $"No GitHub release on {UpdateConfig.GitHubOwner}/{UpdateConfig.GitHubRepo}. Open the tutorial to publish one."
-                            : $"Aucune release GitHub sur {UpdateConfig.GitHubOwner}/{UpdateConfig.GitHubRepo}. Ouvrez le tutoriel pour en publier une.";
-                        UpdateInfoBar.IsOpen = true;
-                        break;
-
                     default:
                         UpdateInfoBar.Severity = InfoBarSeverity.Error;
                         UpdateInfoBar.Title = isEn ? "Update check failed" : "Vérification impossible";
-                        UpdateInfoBar.Message = string.IsNullOrWhiteSpace(result.Message)
-                            ? (isEn ? "Check your connection and the GitHub repository name." : "Vérifiez la connexion et le nom du dépôt GitHub.")
-                            : result.Message;
+                        UpdateInfoBar.Message = isEn
+                            ? "Unable to check for updates. Try again later."
+                            : "Impossible de vérifier les mises à jour. Réessayez plus tard.";
                         UpdateInfoBar.IsOpen = true;
                         break;
                 }
@@ -244,32 +236,16 @@ namespace Skrib
                 Content = panel,
                 PrimaryButtonText = result.Asset != null
                     ? (isEn ? "Download and install" : "Télécharger et installer")
-                    : (isEn ? "Open GitHub" : "Ouvrir GitHub"),
+                    : (isEn ? "OK" : "OK"),
                 CloseButtonText = isEn ? "Later" : "Plus tard",
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = this.Content.XamlRoot
             };
 
-            if (result.Asset != null)
-            {
-                dialog.SecondaryButtonText = isEn ? "Open GitHub" : "Ouvrir GitHub";
-            }
-
             var choice = await dialog.ShowAsync();
-            if (choice == ContentDialogResult.Primary)
+            if (choice == ContentDialogResult.Primary && result.Asset != null)
             {
-                if (result.Asset != null)
-                {
-                    await DownloadAndInstallAsync(result.Asset);
-                }
-                else
-                {
-                    await OpenReleasePageAsync(result);
-                }
-            }
-            else if (choice == ContentDialogResult.Secondary)
-            {
-                await OpenReleasePageAsync(result);
+                await DownloadAndInstallAsync(result.Asset);
             }
         }
 
@@ -315,70 +291,9 @@ namespace Skrib
             }
         }
 
-        private static async Task OpenReleasePageAsync(UpdateCheckResult result)
-        {
-            var url = result.Release?.HtmlUrl;
-            if (string.IsNullOrWhiteSpace(url))
-            {
-                url = UpdateConfig.ReleasesPageUrl;
-            }
-            await Launcher.LaunchUriAsync(new Uri(url));
-        }
-
-        private async void GitHubGuideLink_Click(object sender, RoutedEventArgs e)
-        {
-            bool isEn = _currentLang == "en";
-            var body = isEn
-                ? "1. Install Git for Windows (git-scm.com).\n" +
-                  "2. Create a GitHub repository (public recommended).\n" +
-                  "3. In UpdateConfig.cs, set GitHubOwner and GitHubRepo.\n" +
-                  "4. git init, commit, then git push origin main.\n" +
-                  "5. Bump Identity Version in Package.appxmanifest.\n" +
-                  "6. Create a GitHub Release tagged like v1.0.6 and attach the .msix or .zip.\n" +
-                  "7. Use Check in Settings — Skrib reads /releases/latest.\n\n" +
-                  "Full steps: TUTO-GITHUB.md in the project folder."
-                : "1. Installez Git pour Windows (git-scm.com).\n" +
-                  "2. Créez un dépôt GitHub (public de préférence).\n" +
-                  "3. Dans UpdateConfig.cs, renseignez GitHubOwner et GitHubRepo.\n" +
-                  "4. git init, commit, puis git push origin main.\n" +
-                  "5. Augmentez Identity Version dans Package.appxmanifest.\n" +
-                  "6. Créez une Release GitHub (tag v1.0.6) et joignez le .msix ou .zip.\n" +
-                  "7. Utilisez Vérifier dans les paramètres — Skrib lit /releases/latest.\n\n" +
-                  "Détail : fichier TUTO-GITHUB.md à la racine du projet.";
-
-            var dialog = new ContentDialog
-            {
-                Title = isEn ? "Git and GitHub tutorial" : "Tutoriel Git et GitHub",
-                Content = new ScrollViewer
-                {
-                    MaxHeight = 360,
-                    Content = new TextBlock
-                    {
-                        Text = body,
-                        TextWrapping = TextWrapping.Wrap
-                    }
-                },
-                PrimaryButtonText = isEn ? "Open GitHub" : "Ouvrir GitHub",
-                SecondaryButtonText = isEn ? "Download Git" : "Télécharger Git",
-                CloseButtonText = isEn ? "Close" : "Fermer",
-                DefaultButton = ContentDialogButton.Close,
-                XamlRoot = this.Content.XamlRoot
-            };
-
-            var result = await dialog.ShowAsync();
-            if (result == ContentDialogResult.Primary)
-            {
-                await Launcher.LaunchUriAsync(new Uri("https://github.com/new"));
-            }
-            else if (result == ContentDialogResult.Secondary)
-            {
-                await Launcher.LaunchUriAsync(new Uri("https://git-scm.com/download/win"));
-            }
-        }
-
         #endregion
 
-        #region Gestion du Thème
+        #region Theme Management
 
         private void ApplySavedTheme()
         {
@@ -431,7 +346,7 @@ namespace Skrib
 
         #endregion
 
-        #region Gestion de la Langue
+        #region Language Management
 
         private void ApplySavedLanguage()
         {
@@ -504,10 +419,9 @@ namespace Skrib
                 WordWrapDesc.Text = "Wrap long lines of text to fit the window width";
 
                 SectionUpdateTitle.Text = "Updates";
-                UpdateHeaderTitle.Text = "GitHub updates";
+                UpdateHeaderTitle.Text = "Updates";
                 UpdateHeaderDesc.Text = "Check whether a newer version is available";
                 CheckUpdateButtonText.Text = "Check";
-                GitHubGuideLink.Content = "Git and GitHub tutorial";
 
                 SectionAboutTitle.Text = "About";
                 AboutTitle.Text = "Skrib";
@@ -548,10 +462,9 @@ namespace Skrib
                 WordWrapDesc.Text = "Ajuster le texte pour qu'il tienne dans la largeur de la fenêtre";
 
                 SectionUpdateTitle.Text = "Mises à jour";
-                UpdateHeaderTitle.Text = "Mises à jour GitHub";
+                UpdateHeaderTitle.Text = "Mises à jour";
                 UpdateHeaderDesc.Text = "Vérifiez si une nouvelle version est disponible";
                 CheckUpdateButtonText.Text = "Vérifier";
-                GitHubGuideLink.Content = "Tutoriel Git et GitHub";
 
                 SectionAboutTitle.Text = "À propos";
                 AboutTitle.Text = "Skrib";

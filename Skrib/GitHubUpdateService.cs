@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -74,6 +75,7 @@ internal static class GitHubUpdateService
         };
         client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Skrib", "1.0"));
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+        client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
         return client;
     }
 
@@ -95,37 +97,13 @@ internal static class GitHubUpdateService
         var local = GetLocalVersion();
         try
         {
-            using var response = await Http.GetAsync(UpdateConfig.ReleasesApiUrl, cancellationToken).ConfigureAwait(false);
-            var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return new UpdateCheckResult
-                {
-                    Status = UpdateCheckStatus.NoRelease,
-                    LocalVersion = local,
-                    Message = "no-release"
-                };
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return new UpdateCheckResult
-                {
-                    Status = UpdateCheckStatus.Error,
-                    LocalVersion = local,
-                    Message = $"HTTP {(int)response.StatusCode}"
-                };
-            }
-
-            var release = JsonSerializer.Deserialize<GitHubRelease>(json);
+            var release = await FetchNewestReleaseAsync(cancellationToken).ConfigureAwait(false);
             if (release == null || string.IsNullOrWhiteSpace(release.TagName))
             {
                 return new UpdateCheckResult
                 {
                     Status = UpdateCheckStatus.NoRelease,
-                    LocalVersion = local,
-                    Message = "no-release"
+                    LocalVersion = local
                 };
             }
 
@@ -222,6 +200,43 @@ internal static class GitHubUpdateService
         return release.Assets[0];
     }
 
+    private static async Task<GitHubRelease?> FetchNewestReleaseAsync(CancellationToken cancellationToken)
+    {
+        using var latest = await Http.GetAsync(UpdateConfig.ReleasesApiUrl, cancellationToken).ConfigureAwait(false);
+        if (latest.IsSuccessStatusCode)
+        {
+            var json = await latest.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var one = JsonSerializer.Deserialize<GitHubRelease>(json);
+            if (one != null && !string.IsNullOrWhiteSpace(one.TagName))
+            {
+                return one;
+            }
+        }
+        else if (latest.StatusCode != System.Net.HttpStatusCode.NotFound)
+        {
+            latest.EnsureSuccessStatusCode();
+        }
+
+        var listUrl = $"https://api.github.com/repos/{UpdateConfig.GitHubOwner}/{UpdateConfig.GitHubRepo}/releases?per_page=30";
+        using var listResponse = await Http.GetAsync(listUrl, cancellationToken).ConfigureAwait(false);
+        if (listResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        listResponse.EnsureSuccessStatusCode();
+        var listJson = await listResponse.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        var releases = JsonSerializer.Deserialize<GitHubRelease[]>(listJson) ?? [];
+        return releases
+            .Where(r => TryParseTag(r.TagName, out _))
+            .OrderByDescending(r =>
+            {
+                TryParseTag(r.TagName, out var v);
+                return v;
+            })
+            .FirstOrDefault();
+    }
+
     internal static bool TryParseTag(string tag, out Version version)
     {
         version = new Version(0, 0);
@@ -236,6 +251,12 @@ internal static class GitHubUpdateService
             t = t[1..];
         }
 
-        return Version.TryParse(t, out version!);
+        if (Version.TryParse(t, out version!))
+        {
+            return true;
+        }
+
+        var match = Regex.Match(tag, @"\d+\.\d+(?:\.\d+){0,2}");
+        return match.Success && Version.TryParse(match.Value, out version!);
     }
 }

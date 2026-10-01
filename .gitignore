@@ -17,6 +17,26 @@ AppPackages/
 BundleArtifacts/
 Package.StoreAssociation.xml
 
+## NuGet / packages
+packages/
+*.nupkg
+.nuget/
+
+## Certificates and keys (do NOT commit private keys)
+*.pfx
+*.p12
+*.key
+*.cer
+*.pem
+*.pvk
+*.p7b
+*.p7c
+
+## Build artifacts and test results
+artifacts/
+TestResults/
+*.log
+
 ## OS
 Thumbs.db
 Desktop.ini

@@ -1,12 +1,12 @@
 namespace Skrib;
 
 /// <summary>
-/// Dépôt GitHub utilisé pour vérifier les mises à jour (releases).
-/// Adaptez Owner et Repo si votre dépôt a un autre nom.
+/// GitHub repository used to check for updates (releases).
+/// Adjust Owner and Repo if your repository has a different name.
 /// </summary>
 internal static class UpdateConfig
 {
-    public const string GitHubOwner = "gaelt";
+    public const string GitHubOwner = "Gtisseran";
     public const string GitHubRepo = "Skrib";
 
     public static string ReleasesApiUrl =>

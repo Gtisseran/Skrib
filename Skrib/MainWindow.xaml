@@ -14,7 +14,7 @@
     </Window.SystemBackdrop>
 
     <Grid x:Name="RootGrid" KeyDown="RootGrid_KeyDown">
-        <!-- VUE ÉDITEUR PRINCIPALE -->
+        <!-- MAIN EDITOR VIEW -->
         <Grid x:Name="MainView" Visibility="Visible">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -22,7 +22,7 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Ligne supérieure : MenuBar + Bouton Paramètres au bout de la ligne -->
+            <!-- Top row: MenuBar + Settings button at the end -->
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -107,7 +107,7 @@
                     </MenuBarItem>
                 </MenuBar>
 
-                <!-- Bouton Paramètres : uniquement l'icône, au bout de la ligne -->
+                <!-- Settings button: icon-only, at row end -->
                 <Button Grid.Column="1"
                         x:Name="SettingsButton"
                         Click="SettingsButton_Click"
@@ -123,7 +123,7 @@
                 </Button>
             </Grid>
 
-            <!-- Zone de texte (Éditeur) -->
+            <!-- Editor text area -->
             <TextBox x:Name="Editor" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="14" TextChanged="Editor_TextChanged" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto">
                 <TextBox.Resources>
                     <ResourceDictionary>
@@ -143,7 +143,7 @@
                 </TextBox.Resources>
             </TextBox>
 
-            <!-- Barre d'état avec icône -->
+            <!-- Status bar with icon -->
             <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Padding="10,4">
                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <FontIcon x:Name="StatusIcon" Glyph="&#xE7C3;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
@@ -152,14 +152,14 @@
             </Border>
         </Grid>
 
-        <!-- PAGE PARAMÈTRES (STYLE WINDOWS 11) -->
+        <!-- SETTINGS PAGE (WINDOWS 11 STYLE) -->
         <Grid x:Name="SettingsView" Visibility="Collapsed" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- En-tête Paramètres : Bouton retour + Titre -->
+            <!-- Settings header: Back button + Title -->
             <Grid Grid.Row="0" Margin="20,16,20,12">
                 <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                     <Button x:Name="BackButton"
@@ -175,11 +175,11 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Contenu Paramètres avec cartes Windows 11 et menus déroulants -->
+            <!-- Settings content using Win11-style cards and dropdowns -->
             <ScrollViewer Grid.Row="1" Padding="28,4,28,32">
                 <StackPanel MaxWidth="720" HorizontalAlignment="Left" Spacing="24">
 
-                    <!-- SECTION 1 : APPARENCE -->
+                    <!-- SECTION 1: APPEARANCE -->
                     <StackPanel Spacing="8">
                         <TextBlock x:Name="SectionAppearanceTitle" Text="Apparence" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Margin="4,0,0,4" />
 
@@ -358,7 +358,7 @@
                                 </Border>
 
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                    <TextBlock x:Name="UpdateHeaderTitle" Text="Mises à jour GitHub" FontWeight="SemiBold" FontSize="14" />
+                                    <TextBlock x:Name="UpdateHeaderTitle" Text="Mises à jour" FontWeight="SemiBold" FontSize="14" />
                                     <TextBlock x:Name="UpdateHeaderDesc" Text="Vérifiez si une nouvelle version est disponible" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                                 </StackPanel>
 
@@ -385,11 +385,6 @@
                                  IsOpen="False"
                                  IsClosable="True"
                                  Severity="Informational" />
-
-                        <HyperlinkButton x:Name="GitHubGuideLink"
-                                         Click="GitHubGuideLink_Click"
-                                         Padding="4,0"
-                                         Content="Tutoriel Git et GitHub" />
                     </StackPanel>
 
                     <!-- SECTION 4 : À PROPOS -->
