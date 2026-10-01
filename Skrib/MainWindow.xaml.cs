@@ -113,16 +113,11 @@ namespace Skrib
             {
                 var v = Windows.ApplicationModel.Package.Current.Id.Version;
                 var versionStr = $"{v.Major}.{v.Minor}.{v.Build}.{v.Revision}";
-                var desc = _currentLang == "en"
-                    ? $"Version {versionStr} • Modern Windows 11 text editor"
-                    : $"Version {versionStr} • Éditeur de texte moderne Windows 11";
-                AboutDesc.Text = desc;
+                AboutDesc.Text = $"Version {versionStr}";
             }
             catch
             {
-                AboutDesc.Text = _currentLang == "en"
-                    ? "Version 1.0.4 • Modern Windows 11 text editor"
-                    : "Version 1.0.4 • Éditeur de texte moderne Windows 11";
+                AboutDesc.Text = "Version 1.0.4";
             }
         }
 
@@ -425,6 +420,7 @@ namespace Skrib
 
                 SectionAboutTitle.Text = "About";
                 AboutTitle.Text = "Skrib";
+                SetBetaNoticeText("Beta build: bugs may occur.");
             }
             else
             {
@@ -468,6 +464,7 @@ namespace Skrib
 
                 SectionAboutTitle.Text = "À propos";
                 AboutTitle.Text = "Skrib";
+                SetBetaNoticeText("Version bêta : des bugs peuvent survenir.");
             }
 
             UpdateAboutVersion();
@@ -476,7 +473,7 @@ namespace Skrib
 
         #endregion
 
-        #region Éditeur et Word Wrap
+        #region Editor and Word Wrap
 
         private void ApplySavedWordWrap()
         {
@@ -515,10 +512,30 @@ namespace Skrib
             }
         }
 
+        private bool _titleRefreshQueued;
+
+        private void SetBetaNoticeText(string text)
+        {
+            if (RootGrid.FindName("BetaNoticeText") is TextBlock betaNoticeText)
+            {
+                betaNoticeText.Text = text;
+            }
+        }
+
         private void Editor_TextChanged(object sender, TextChangedEventArgs e)
         {
             _isDirty = true;
-            UpdateTitle();
+            if (_titleRefreshQueued)
+            {
+                return;
+            }
+
+            _titleRefreshQueued = true;
+            _ = DispatcherQueue.TryEnqueue(() =>
+            {
+                _titleRefreshQueued = false;
+                UpdateTitle();
+            });
         }
 
         private async void NewFile_Click(object sender, RoutedEventArgs e)
