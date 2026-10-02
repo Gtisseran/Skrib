@@ -12,6 +12,7 @@ using Windows.ApplicationModel.DataTransfer;
 using WinRT.Interop;
 using System.Runtime.InteropServices;
 using Windows.System;
+using Windows.UI.Core;
 
 namespace Skrib
 {
@@ -34,10 +35,16 @@ namespace Skrib
         private bool _isDirty;
         private string _currentLang = "fr";
         private bool _isInitialized = false;
+        private MenuFlyoutItem? _contextCut;
+        private MenuFlyoutItem? _contextCopy;
+        private MenuFlyoutItem? _contextPaste;
+        private MenuFlyoutItem? _contextSelectAll;
 
         public MainWindow()
         {
             this.InitializeComponent();
+            ConfigureCustomTitleBar();
+            InitializeContextMenu();
             SetMinimumWindowSize();
             SetWindowIcon();
             ApplySavedTheme();
@@ -45,6 +52,55 @@ namespace Skrib
             ApplySavedWordWrap();
             UpdateAboutVersion();
             _isInitialized = true;
+        }
+
+        private void ConfigureCustomTitleBar()
+        {
+            try
+            {
+                this.ExtendsContentIntoTitleBar = true;
+                if (this.Content is FrameworkElement root && root.FindName("AppTitleBar") is Border titleBar)
+                {
+                    this.SetTitleBar(titleBar);
+                }
+
+                var hwnd = WindowNative.GetWindowHandle(this);
+                var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+                var appWindow = AppWindow.GetFromWindowId(windowId);
+                if (appWindow != null)
+                {
+                    var titleBarCtrl = appWindow.TitleBar;
+                    titleBarCtrl.ExtendsContentIntoTitleBar = true;
+                    titleBarCtrl.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
+                    titleBarCtrl.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
+                    titleBarCtrl.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(40, 255, 255, 255);
+                    titleBarCtrl.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(60, 255, 255, 255);
+                }
+            }
+            catch { }
+        }
+
+        private void InitializeContextMenu()
+        {
+            _contextCut = new MenuFlyoutItem { Text = "Couper", Icon = new SymbolIcon(Symbol.Cut), Tag = "cut" };
+            _contextCut.Click += Cut_Click;
+
+            _contextCopy = new MenuFlyoutItem { Text = "Copier", Icon = new SymbolIcon(Symbol.Copy), Tag = "copy" };
+            _contextCopy.Click += Copy_Click;
+
+            _contextPaste = new MenuFlyoutItem { Text = "Coller", Icon = new SymbolIcon(Symbol.Paste), Tag = "paste" };
+            _contextPaste.Click += Paste_Click;
+
+            _contextSelectAll = new MenuFlyoutItem { Text = "Tout sélectionner", Icon = new SymbolIcon(Symbol.SelectAll), Tag = "select-all" };
+            _contextSelectAll.Click += SelectAll_Click;
+
+            var flyout = new MenuFlyout();
+            flyout.Items.Add(_contextCut);
+            flyout.Items.Add(_contextCopy);
+            flyout.Items.Add(_contextPaste);
+            flyout.Items.Add(new MenuFlyoutSeparator());
+            flyout.Items.Add(_contextSelectAll);
+            Editor.ContextFlyout = flyout;
         }
 
         private void SetMinimumWindowSize()
@@ -146,143 +202,26 @@ namespace Skrib
             {
                 CloseSettings();
                 e.Handled = true;
+                return;
             }
-        }
 
-        #endregion
-
-        #region GitHub Updates
-
-        private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
-        {
-            bool isEn = _currentLang == "en";
-            CheckUpdateButton.IsEnabled = false;
-            UpdateCheckProgress.Visibility = Visibility.Visible;
-            UpdateCheckProgress.IsActive = true;
-            UpdateInfoBar.IsOpen = false;
-
-            try
+            if ((Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control) & CoreVirtualKeyStates.Down) == CoreVirtualKeyStates.Down)
             {
-                var result = await GitHubUpdateService.CheckAsync();
-                switch (result.Status)
+                switch (e.Key)
                 {
-                    case UpdateCheckStatus.UpToDate:
-                    case UpdateCheckStatus.NoRelease:
-                        UpdateInfoBar.Severity = InfoBarSeverity.Success;
-                        UpdateInfoBar.Title = isEn ? "No update available" : "Aucune mise à jour disponible";
-                        UpdateInfoBar.Message = isEn
-                            ? $"You already have the latest version ({result.LocalVersion})."
-                            : $"Vous avez déjà la dernière version ({result.LocalVersion}).";
-                        UpdateInfoBar.IsOpen = true;
+                    case VirtualKey.C:
+                        Copy_Click(sender, null!);
+                        e.Handled = true;
                         break;
-
-                    case UpdateCheckStatus.UpdateAvailable:
-                        await ShowUpdateAvailableAsync(result);
+                    case VirtualKey.X:
+                        Cut_Click(sender, null!);
+                        e.Handled = true;
                         break;
-
-                    default:
-                        UpdateInfoBar.Severity = InfoBarSeverity.Error;
-                        UpdateInfoBar.Title = isEn ? "Update check failed" : "Vérification impossible";
-                        UpdateInfoBar.Message = isEn
-                            ? "Unable to check for updates. Try again later."
-                            : "Impossible de vérifier les mises à jour. Réessayez plus tard.";
-                        UpdateInfoBar.IsOpen = true;
+                    case VirtualKey.A:
+                        SelectAll_Click(sender, null!);
+                        e.Handled = true;
                         break;
                 }
-            }
-            finally
-            {
-                UpdateCheckProgress.IsActive = false;
-                UpdateCheckProgress.Visibility = Visibility.Collapsed;
-                CheckUpdateButton.IsEnabled = true;
-            }
-        }
-
-        private async Task ShowUpdateAvailableAsync(UpdateCheckResult result)
-        {
-            bool isEn = _currentLang == "en";
-            var notes = string.IsNullOrWhiteSpace(result.Release?.Body)
-                ? (isEn ? "No release notes." : "Pas de notes de version.")
-                : result.Release!.Body.Trim();
-
-            var panel = new StackPanel { Spacing = 12 };
-            panel.Children.Add(new TextBlock
-            {
-                Text = isEn
-                    ? $"Version {result.RemoteVersion} is available (you have {result.LocalVersion})."
-                    : $"La version {result.RemoteVersion} est disponible (vous avez {result.LocalVersion}).",
-                TextWrapping = TextWrapping.Wrap
-            });
-            panel.Children.Add(new ScrollViewer
-            {
-                MaxHeight = 220,
-                Content = new TextBlock
-                {
-                    Text = notes,
-                    TextWrapping = TextWrapping.Wrap,
-                    FontSize = 12,
-                    Opacity = 0.9
-                }
-            });
-
-            var dialog = new ContentDialog
-            {
-                Title = isEn ? "Update available" : "Mise à jour disponible",
-                Content = panel,
-                PrimaryButtonText = result.Asset != null
-                    ? (isEn ? "Download and install" : "Télécharger et installer")
-                    : (isEn ? "OK" : "OK"),
-                CloseButtonText = isEn ? "Later" : "Plus tard",
-                DefaultButton = ContentDialogButton.Primary,
-                XamlRoot = this.Content.XamlRoot
-            };
-
-            var choice = await dialog.ShowAsync();
-            if (choice == ContentDialogResult.Primary && result.Asset != null)
-            {
-                await DownloadAndInstallAsync(result.Asset);
-            }
-        }
-
-        private async Task DownloadAndInstallAsync(GitHubAsset asset)
-        {
-            bool isEn = _currentLang == "en";
-            UpdateInfoBar.Severity = InfoBarSeverity.Informational;
-            UpdateInfoBar.Title = isEn ? "Downloading…" : "Téléchargement…";
-            UpdateInfoBar.Message = asset.Name;
-            UpdateInfoBar.IsOpen = true;
-
-            try
-            {
-                var progress = new Progress<double>(p =>
-                {
-                    UpdateInfoBar.Message = $"{asset.Name} — {(int)(p * 100)} %";
-                });
-                var path = await GitHubUpdateService.DownloadAssetAsync(asset, progress);
-
-                UpdateInfoBar.Severity = InfoBarSeverity.Success;
-                UpdateInfoBar.Title = isEn ? "Download complete" : "Téléchargement terminé";
-                UpdateInfoBar.Message = isEn
-                    ? "The installer will open. Close Skrib if the setup asks you to."
-                    : "L’installateur va s’ouvrir. Fermez Skrib si l’installation le demande.";
-
-                var started = Process.Start(new ProcessStartInfo
-                {
-                    FileName = path,
-                    UseShellExecute = true
-                });
-
-                if (started == null)
-                {
-                    await Launcher.LaunchUriAsync(new Uri(path));
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateInfoBar.Severity = InfoBarSeverity.Error;
-                UpdateInfoBar.Title = isEn ? "Download failed" : "Téléchargement impossible";
-                UpdateInfoBar.Message = ex.Message;
-                UpdateInfoBar.IsOpen = true;
             }
         }
 
@@ -393,6 +332,11 @@ namespace Skrib
                 MenuPaste.Text = "Paste";
                 MenuSelectAll.Text = "Select All";
 
+                if (_contextCut != null) _contextCut.Text = "Cut";
+                if (_contextCopy != null) _contextCopy.Text = "Copy";
+                if (_contextPaste != null) _contextPaste.Text = "Paste";
+                if (_contextSelectAll != null) _contextSelectAll.Text = "Select All";
+
                 ToolTipService.SetToolTip(SettingsButton, "Settings");
                 ToolTipService.SetToolTip(BackButton, "Back");
                 SettingsTitleText.Text = "Settings";
@@ -413,14 +357,8 @@ namespace Skrib
                 WordWrapTitle.Text = "Word wrap";
                 WordWrapDesc.Text = "Wrap long lines of text to fit the window width";
 
-                SectionUpdateTitle.Text = "Updates";
-                UpdateHeaderTitle.Text = "Updates";
-                UpdateHeaderDesc.Text = "Check whether a newer version is available";
-                CheckUpdateButtonText.Text = "Check";
-
                 SectionAboutTitle.Text = "About";
                 AboutTitle.Text = "Skrib";
-                SetBetaNoticeText("Stable version");
             }
             else
             {
@@ -436,6 +374,11 @@ namespace Skrib
                 MenuCopy.Text = "Copier";
                 MenuPaste.Text = "Coller";
                 MenuSelectAll.Text = "Tout sélectionner";
+
+                if (_contextCut != null) _contextCut.Text = "Couper";
+                if (_contextCopy != null) _contextCopy.Text = "Copier";
+                if (_contextPaste != null) _contextPaste.Text = "Coller";
+                if (_contextSelectAll != null) _contextSelectAll.Text = "Tout sélectionner";
 
                 ToolTipService.SetToolTip(SettingsButton, "Paramètres");
                 ToolTipService.SetToolTip(BackButton, "Retour");
@@ -457,14 +400,8 @@ namespace Skrib
                 WordWrapTitle.Text = "Retour automatique à la ligne";
                 WordWrapDesc.Text = "Ajuster le texte pour qu'il tienne dans la largeur de la fenêtre";
 
-                SectionUpdateTitle.Text = "Mises à jour";
-                UpdateHeaderTitle.Text = "Mises à jour";
-                UpdateHeaderDesc.Text = "Vérifiez si une nouvelle version est disponible";
-                CheckUpdateButtonText.Text = "Vérifier";
-
                 SectionAboutTitle.Text = "À propos";
                 AboutTitle.Text = "Skrib";
-                SetBetaNoticeText("Version stable");
             }
 
             UpdateAboutVersion();
@@ -502,6 +439,14 @@ namespace Skrib
             var ready = _currentLang == "en" ? "Ready" : "Prêt";
             var name = _currentFile != null ? _currentFile.Name : untitled;
             this.Title = $"Skrib - {name}{(_isDirty ? "*" : "")}";
+            if (WindowTitleText != null)
+            {
+                WindowTitleText.Text = "Skrib";
+            }
+            if (WindowTitleStatus != null)
+            {
+                WindowTitleStatus.Text = _currentFile != null ? name : ( _currentLang == "en" ? "Untitled" : "Sans titre");
+            }
             try
             {
                 StatusText.Text = _currentFile != null ? _currentFile.Path : ready;
@@ -513,14 +458,6 @@ namespace Skrib
         }
 
         private bool _titleRefreshQueued;
-
-        private void SetBetaNoticeText(string text)
-        {
-            if (RootGrid.FindName("BetaNoticeText") is TextBlock betaNoticeText)
-            {
-                betaNoticeText.Text = text;
-            }
-        }
 
         private void Editor_TextChanged(object sender, TextChangedEventArgs e)
         {

@@ -14,8 +14,39 @@
     </Window.SystemBackdrop>
 
     <Grid x:Name="RootGrid" KeyDown="RootGrid_KeyDown">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border x:Name="AppTitleBar"
+                Grid.Row="0"
+                Height="32"
+                Padding="8,0,12,0"
+                Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                    <Image Width="16" Height="16" Source="ms-appx:///Assets/Square44x44Logo.scale-200.png" Stretch="Uniform" />
+                    <TextBlock x:Name="WindowTitleText" Text="Skrib" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="1" x:Name="WindowTitleStatus"
+                           Text="Sans titre"
+                           FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
         <!-- MAIN EDITOR VIEW -->
-        <Grid x:Name="MainView" Visibility="Visible">
+        <Grid x:Name="MainView" Grid.Row="1" Visibility="Visible">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -75,34 +106,22 @@
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="Cut" />
                             </MenuFlyoutItem.Icon>
-                            <MenuFlyoutItem.KeyboardAccelerators>
-                                <KeyboardAccelerator Key="X" Modifiers="Control" />
-                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="MenuCopy" Text="Copier" Click="Copy_Click">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="Copy" />
                             </MenuFlyoutItem.Icon>
-                            <MenuFlyoutItem.KeyboardAccelerators>
-                                <KeyboardAccelerator Key="C" Modifiers="Control" />
-                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="MenuPaste" Text="Coller" Click="Paste_Click">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="Paste" />
                             </MenuFlyoutItem.Icon>
-                            <MenuFlyoutItem.KeyboardAccelerators>
-                                <KeyboardAccelerator Key="V" Modifiers="Control" />
-                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                         <MenuFlyoutSeparator />
                         <MenuFlyoutItem x:Name="MenuSelectAll" Text="Tout sélectionner" Click="SelectAll_Click">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="SelectAll" />
                             </MenuFlyoutItem.Icon>
-                            <MenuFlyoutItem.KeyboardAccelerators>
-                                <KeyboardAccelerator Key="A" Modifiers="Control" />
-                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                     </MenuBarItem>
                 </MenuBar>
@@ -153,19 +172,19 @@
         </Grid>
 
         <!-- SETTINGS PAGE (WINDOWS 11 STYLE) -->
-        <Grid x:Name="SettingsView" Visibility="Collapsed" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid x:Name="SettingsView" Grid.Row="1" Visibility="Collapsed" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
             <!-- Settings header: back button + title -->
-            <Grid Grid.Row="0" Margin="10,12,20,8" Padding="0,0,0,8">
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            <Grid Grid.Row="0" Margin="0,0,0,10" Padding="8,8,8,0">
+                <Border Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="12"
-                        Padding="8,6"
+                        BorderThickness="0,0,0,1"
+                        CornerRadius="0"
+                        Padding="10,8"
                         HorizontalAlignment="Stretch">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -176,10 +195,10 @@
                         <Button x:Name="BackButton"
                                 Grid.Column="0"
                                 Click="BackButton_Click"
-                                Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                                Background="Transparent"
                                 BorderThickness="0"
-                                Padding="8,6"
-                                CornerRadius="8"
+                                Padding="6,4"
+                                CornerRadius="6"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Center"
                                 ToolTipService.ToolTip="Retour">
@@ -359,68 +378,7 @@
                         </Border>
                     </StackPanel>
 
-                    <!-- SECTION 3: UPDATES (handled by Microsoft Store) -->
-                    <StackPanel Spacing="8" Visibility="Collapsed">
-                        <TextBlock x:Name="SectionUpdateTitle" Text="Mises à jour" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Margin="4,0,0,4" />
-
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                MinHeight="68"
-                                Padding="16,12">
-                            <Grid ColumnSpacing="16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
-                                        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                        VerticalAlignment="Center">
-                                    <FontIcon Glyph="&#xE895;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                                </Border>
-
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                    <TextBlock x:Name="UpdateHeaderTitle" Text="Mises à jour" FontWeight="SemiBold" FontSize="14" />
-                                    <TextBlock x:Name="UpdateHeaderDesc" Text="Vérifiez si une nouvelle version est disponible" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                </StackPanel>
-
-                                <Button Grid.Column="2"
-                                        x:Name="CheckUpdateButton"
-                                        Click="CheckUpdateButton_Click"
-                                        Style="{StaticResource AccentButtonStyle}"
-                                        MinWidth="128"
-                                        VerticalAlignment="Center"
-                                        HorizontalAlignment="Right">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <ProgressRing x:Name="UpdateCheckProgress"
-                                                      Width="16"
-                                                      Height="16"
-                                                      IsActive="False"
-                                                      Visibility="Collapsed" />
-                                        <TextBlock x:Name="CheckUpdateButtonText" Text="Vérifier" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Button>
-                            </Grid>
-                        </Border>
-
-                        <InfoBar x:Name="UpdateInfoBar"
-                                  IsOpen="False"
-                                  IsClosable="True"
-                                  Severity="Informational" />
-
-                        <TextBlock x:Name="BetaNoticeText"
-                                    Text="Version stable"
-                                    FontSize="11"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                    TextWrapping="Wrap"
-                                    Margin="4,0,0,0" />
-                    </StackPanel>
-
-                    <!-- SECTION 4: ABOUT -->
+                    <!-- SECTION 3: ABOUT -->
                     <StackPanel Spacing="8">
                         <TextBlock x:Name="SectionAboutTitle" Text="À propos" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Margin="4,0,0,4" />
 
