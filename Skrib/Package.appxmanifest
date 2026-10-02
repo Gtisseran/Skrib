@@ -9,11 +9,11 @@
   IgnorableNamespaces="uap rescap systemai">
 
   <Identity
-    Name="53b4d3ab-c41b-46a3-af0c-ea4ee13c2c13"
-    Publisher="CN=Gael Tisserand"
-    Version="0.0.0.0" />
+    Name="gaelt.Skrib"
+    Publisher="CN=17EA67E3-B09A-4632-83DE-DE8DD6365C9A"
+    Version="1.0.0.0" />
 
-  <mp:PhoneIdentity PhoneProductId="53b4d3ab-c41b-46a3-af0c-ea4ee13c2c13" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+  <mp:PhoneIdentity PhoneProductId="c7616d2b-71da-46bd-a26a-5fa3cea3c812" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>Skrib</DisplayName>

@@ -11,8 +11,10 @@ obj/
 ## Publish / packages
 *.msix
 *.msixbundle
+*.msixupload
 *.appx
 *.appxbundle
+*.appxsym
 AppPackages/
 BundleArtifacts/
 Package.StoreAssociation.xml

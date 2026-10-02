@@ -160,12 +160,12 @@
             </Grid.RowDefinitions>
 
             <!-- Settings header: back button + title -->
-            <Grid Grid.Row="0" Margin="20,16,20,12" Padding="0,0,0,12">
+            <Grid Grid.Row="0" Margin="10,12,20,8" Padding="0,0,0,8">
                 <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                         BorderThickness="1"
                         CornerRadius="12"
-                        Padding="10,8"
+                        Padding="8,6"
                         HorizontalAlignment="Stretch">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -178,7 +178,7 @@
                                 Click="BackButton_Click"
                                 Background="{ThemeResource ControlFillColorSecondaryBrush}"
                                 BorderThickness="0"
-                                Padding="10,8"
+                                Padding="8,6"
                                 CornerRadius="8"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Center"
@@ -192,14 +192,14 @@
                                    FontSize="22"
                                    FontWeight="SemiBold"
                                    VerticalAlignment="Center"
-                                   Margin="12,0,0,0" />
+                                   Margin="10,0,0,0" />
                     </Grid>
                 </Border>
             </Grid>
 
             <!-- Settings content using Win11-style cards and dropdowns -->
-            <ScrollViewer Grid.Row="1" Padding="28,4,28,32">
-                <StackPanel MaxWidth="720" HorizontalAlignment="Left" Spacing="24">
+            <ScrollViewer Grid.Row="1" Padding="20,0,20,24">
+                 <StackPanel MaxWidth="860" HorizontalAlignment="Left" Spacing="20">
 
                     <!-- SECTION 1: APPEARANCE -->
                     <StackPanel Spacing="8">
@@ -233,26 +233,28 @@
 
                                 <ComboBox Grid.Column="2" x:Name="ThemeComboBox"
                                           SelectionChanged="ThemeComboBox_SelectionChanged"
-                                          MinWidth="220"
-                                          VerticalContentAlignment="Center"
+                                          Width="280"
                                           HorizontalAlignment="Right"
-                                          VerticalAlignment="Center">
-                                    <ComboBoxItem Tag="Light" VerticalContentAlignment="Center">
+                                          VerticalAlignment="Center"
+                                          HorizontalContentAlignment="Stretch"
+                                          VerticalContentAlignment="Center"
+                                          Padding="10,8,10,8">
+                                    <ComboBoxItem Tag="Light" VerticalContentAlignment="Center" HorizontalContentAlignment="Stretch" Padding="10,8,10,8">
                                         <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                                             <FontIcon Glyph="&#xE706;" FontSize="16" VerticalAlignment="Center" />
                                             <TextBlock x:Name="ThemeLightComboText" Text="Clair" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </ComboBoxItem>
-                                    <ComboBoxItem Tag="Dark" VerticalContentAlignment="Center">
+                                    <ComboBoxItem Tag="Dark" VerticalContentAlignment="Center" HorizontalContentAlignment="Stretch" Padding="10,8,10,8">
                                         <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                                             <FontIcon Glyph="&#xE708;" FontSize="16" VerticalAlignment="Center" />
                                             <TextBlock x:Name="ThemeDarkComboText" Text="Sombre" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </ComboBoxItem>
-                                    <ComboBoxItem Tag="Default" VerticalContentAlignment="Center">
+                                    <ComboBoxItem Tag="Default" VerticalContentAlignment="Center" HorizontalContentAlignment="Stretch" Padding="10,8,10,8">
                                         <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                                             <FontIcon Glyph="&#xE770;" FontSize="16" VerticalAlignment="Center" />
-                                            <TextBlock x:Name="ThemeSystemComboText" Text="Utiliser le paramètre système" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="ThemeSystemComboText" Text="Utiliser le thème du système" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="170" />
                                         </StackPanel>
                                     </ComboBoxItem>
                                 </ComboBox>
@@ -287,7 +289,7 @@
 
                                 <ComboBox Grid.Column="2" x:Name="LangComboBox"
                                           SelectionChanged="LangComboBox_SelectionChanged"
-                                          MinWidth="220"
+                                          MinWidth="240"
                                           VerticalContentAlignment="Center"
                                           HorizontalAlignment="Right"
                                           VerticalAlignment="Center">
@@ -357,8 +359,8 @@
                         </Border>
                     </StackPanel>
 
-                    <!-- SECTION 3: UPDATES -->
-                    <StackPanel Spacing="8">
+                    <!-- SECTION 3: UPDATES (handled by Microsoft Store) -->
+                    <StackPanel Spacing="8" Visibility="Collapsed">
                         <TextBlock x:Name="SectionUpdateTitle" Text="Mises à jour" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Margin="4,0,0,4" />
 
                         <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -411,11 +413,11 @@
                                   Severity="Informational" />
 
                         <TextBlock x:Name="BetaNoticeText"
-                                   Text="Version bêta : des bugs peuvent survenir."
-                                   FontSize="11"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                   TextWrapping="Wrap"
-                                   Margin="4,0,0,0" />
+                                    Text="Version stable"
+                                    FontSize="11"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    TextWrapping="Wrap"
+                                    Margin="4,0,0,0" />
                     </StackPanel>
 
                     <!-- SECTION 4: ABOUT -->

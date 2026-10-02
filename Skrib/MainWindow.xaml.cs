@@ -117,7 +117,7 @@ namespace Skrib
             }
             catch
             {
-                AboutDesc.Text = "Version 1.0.4";
+                AboutDesc.Text = "Version 1.0.0";
             }
         }
 
@@ -402,7 +402,7 @@ namespace Skrib
                 ThemeHeaderDesc.Text = "Select which app theme to display in Skrib";
                 ThemeLightComboText.Text = "Light";
                 ThemeDarkComboText.Text = "Dark";
-                ThemeSystemComboText.Text = "Use system setting";
+                ThemeSystemComboText.Text = "Use system theme";
 
                 LangHeaderTitle.Text = "Language";
                 LangHeaderDesc.Text = "Choose application display language";
@@ -420,7 +420,7 @@ namespace Skrib
 
                 SectionAboutTitle.Text = "About";
                 AboutTitle.Text = "Skrib";
-                SetBetaNoticeText("Beta build: bugs may occur.");
+                SetBetaNoticeText("Stable version");
             }
             else
             {
@@ -446,7 +446,7 @@ namespace Skrib
                 ThemeHeaderDesc.Text = "Choisissez le thème à afficher dans Skrib";
                 ThemeLightComboText.Text = "Clair";
                 ThemeDarkComboText.Text = "Sombre";
-                ThemeSystemComboText.Text = "Utiliser le paramètre système";
+                ThemeSystemComboText.Text = "Utiliser le thème du système";
 
                 LangHeaderTitle.Text = "Langue";
                 LangHeaderDesc.Text = "Choisissez la langue de l'application";
@@ -464,7 +464,7 @@ namespace Skrib
 
                 SectionAboutTitle.Text = "À propos";
                 AboutTitle.Text = "Skrib";
-                SetBetaNoticeText("Version bêta : des bugs peuvent survenir.");
+                SetBetaNoticeText("Version stable");
             }
 
             UpdateAboutVersion();
