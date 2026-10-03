@@ -8,49 +8,59 @@
   xmlns:systemai="http://schemas.microsoft.com/appx/manifest/systemai/windows10"
   IgnorableNamespaces="uap rescap systemai">
 
-  <Identity
-    Name="gaelt.Skrib"
-    Publisher="CN=17EA67E3-B09A-4632-83DE-DE8DD6365C9A"
-    Version="1.0.1.0" />
+	<Identity
+	  Name="gaelt.Skrib"
+	  Publisher="CN=17EA67E3-B09A-4632-83DE-DE8DD6365C9A"
+	  Version="1.0.1.0" />
 
-  <mp:PhoneIdentity PhoneProductId="c7616d2b-71da-46bd-a26a-5fa3cea3c812" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+	<mp:PhoneIdentity PhoneProductId="c7616d2b-71da-46bd-a26a-5fa3cea3c812" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
-  <Properties>
-    <DisplayName>Skrib</DisplayName>
-    <PublisherDisplayName>gaelt</PublisherDisplayName>
-    <Logo>Assets\StoreLogo.png</Logo>
-  </Properties>
+	<Properties>
+		<DisplayName>Skrib</DisplayName>
+		<PublisherDisplayName>gaelt</PublisherDisplayName>
+		<Logo>Assets\StoreLogo.png</Logo>
+	</Properties>
 
-  <Dependencies>
-    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26226.0" />
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26226.0" />
-  </Dependencies>
+	<Dependencies>
+		<TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26226.0" />
+		<TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26226.0" />
+	</Dependencies>
 
-  <Resources>
-    <Resource Language="en-us"/>
-	<Resource Language="fr-fr"/>
-  </Resources>
+	<Resources>
+		<Resource Language="en-us"/>
+		<Resource Language="fr-fr"/>
+	</Resources>
 
-  <Applications>
-    <Application Id="App"
-      Executable="$targetnametoken$.exe"
-      EntryPoint="$targetentrypoint$">
-      <uap:VisualElements
-        DisplayName="Skrib"
-        Description="Skrib"
-        BackgroundColor="transparent"
-        Square150x150Logo="Assets\Square150x150Logo.png"
-        Square44x44Logo="Assets\Square44x44Logo.png">
-        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"  Square71x71Logo="Assets\SmallTile.png" Square310x310Logo="Assets\LargeTile.png"/>
-        <uap:SplashScreen Image="Assets\SplashScreen.png" />
-      </uap:VisualElements>
-    </Application>
-  </Applications>
+	<Applications>
+		<Application Id="App"
+		  Executable="$targetnametoken$.exe"
+		  EntryPoint="$targetentrypoint$">
+			<uap:VisualElements
+			  DisplayName="Skrib"
+			  Description="Skrib"
+			  BackgroundColor="transparent"
+			  Square150x150Logo="Assets\Square150x150Logo.png"
+			  Square44x44Logo="Assets\Square44x44Logo.png">
+				<uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"  Square71x71Logo="Assets\SmallTile.png" Square310x310Logo="Assets\LargeTile.png"/>
+				<uap:SplashScreen Image="Assets\SplashScreen.png" />
+			</uap:VisualElements>
+			<Extensions>
+				<uap:Extension Category="windows.fileTypeAssociation">
+					<uap:FileTypeAssociation Name="skribtextfiles">
+						<uap:DisplayName>Skrib Text Document</uap:DisplayName>
+						<uap:SupportedFileTypes>
+							<uap:FileType>.txt</uap:FileType>
+							<uap:FileType>.md</uap:FileType>
+						</uap:SupportedFileTypes>
+					</uap:FileTypeAssociation>
+				</uap:Extension>
+			</Extensions>
+		</Application>
+	</Applications>
 
-  <Capabilities>
-    <Capability Name="internetClient" />
-    <rescap:Capability Name="runFullTrust" />
-    <systemai:Capability Name="systemAIModels"/>
-  </Capabilities>
+	<Capabilities>
+		<Capability Name="internetClient" />
+		<rescap:Capability Name="runFullTrust" />
+		<systemai:Capability Name="systemAIModels"/>
+	</Capabilities>
 </Package>
-

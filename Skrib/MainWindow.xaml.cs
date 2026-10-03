@@ -202,26 +202,6 @@ namespace Skrib
             {
                 CloseSettings();
                 e.Handled = true;
-                return;
-            }
-
-            if ((Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control) & CoreVirtualKeyStates.Down) == CoreVirtualKeyStates.Down)
-            {
-                switch (e.Key)
-                {
-                    case VirtualKey.C:
-                        Copy_Click(sender, null!);
-                        e.Handled = true;
-                        break;
-                    case VirtualKey.X:
-                        Cut_Click(sender, null!);
-                        e.Handled = true;
-                        break;
-                    case VirtualKey.A:
-                        SelectAll_Click(sender, null!);
-                        e.Handled = true;
-                        break;
-                }
             }
         }
 
@@ -445,7 +425,7 @@ namespace Skrib
             }
             if (WindowTitleStatus != null)
             {
-                WindowTitleStatus.Text = _currentFile != null ? name : ( _currentLang == "en" ? "Untitled" : "Sans titre");
+                WindowTitleStatus.Text = _currentFile != null ? name : (_currentLang == "en" ? "Untitled" : "Sans titre");
             }
             try
             {
@@ -679,4 +659,3 @@ namespace Skrib
         #endregion
     }
 }
-

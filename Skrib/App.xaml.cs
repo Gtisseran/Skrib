@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.UI.Xaml.Shapes;
+using Microsoft.Windows.AppLifecycle;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -39,16 +40,28 @@ namespace Skrib
         }
 
         /// <summary>
-        /// Invoked when the application is launched.
+        /// Invoked when the application is launched (including via .txt / .md file association).
         /// </summary>
         /// <param name="args">Details about the launch request and process.</param>
-        protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
+        protected override async void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            _window = new MainWindow();
-            _window.Activate();
-        }
+            StorageFile? fileToOpen = null;
 
-        // Note: OnActivated not overridden in this WinUI3 project template.
-        // File activation handling will be implemented later via AppInstance or activation APIs if needed.
+            var activated = Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().GetActivatedEventArgs();
+            if (activated.Kind == ExtendedActivationKind.File
+                && activated.Data is IFileActivatedEventArgs fileArgs)
+            {
+                fileToOpen = fileArgs.Files.OfType<StorageFile>().FirstOrDefault();
+            }
+
+            var window = new MainWindow();
+            _window = window;
+            window.Activate();
+
+            if (fileToOpen != null)
+            {
+                await window.OpenFileFromStorageFileAsync(fileToOpen);
+            }
+        }
     }
 }
