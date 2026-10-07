@@ -23,7 +23,7 @@
                 Grid.Row="0"
                 Height="32"
                 Padding="8,0,12,0"
-                Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+                Background="Transparent">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -449,6 +449,16 @@
                             </StackPanel>
                         </Grid>
                     </Border>
+
+                    <Button x:Name="GitHubButton"
+                            Click="GitHubButton_Click"
+                            HorizontalAlignment="Stretch"
+                            Padding="12,8">
+                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                            <FontIcon Glyph="&#xE774;" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock x:Name="GitHubButtonText" Text="Voir sur GitHub" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                     </StackPanel>
 
                 </Grid>
