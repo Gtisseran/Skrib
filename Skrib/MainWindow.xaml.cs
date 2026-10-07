@@ -1,40 +1,27 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Windowing;
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.Storage.Pickers;
-using Windows.ApplicationModel.DataTransfer;
 using WinRT.Interop;
-using System.Runtime.InteropServices;
 using Windows.System;
-using Windows.UI.Core;
 
 namespace Skrib
 {
     public sealed partial class MainWindow : Window
     {
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        private static extern IntPtr LoadImage(IntPtr hinst, string lpszName, uint uType, int cxDesired, int cyDesired, uint fuLoad);
-
-        private const uint WM_SETICON = 0x0080;
-        private const IntPtr ICON_SMALL = 0;
-        private const IntPtr ICON_BIG = (IntPtr)1;
-        private const uint IMAGE_ICON = 1;
-        private const uint LR_LOADFROMFILE = 0x0010;
-        private const uint LR_DEFAULTSIZE = 0x0040;
-
         private StorageFile? _currentFile;
         private bool _isDirty;
         private string _currentLang = "fr";
         private bool _isInitialized = false;
+        private bool _suppressDirty;
+        private bool _titleRefreshQueued;
+        private MenuFlyoutItem? _contextUndo;
+        private MenuFlyoutItem? _contextRedo;
         private MenuFlyoutItem? _contextCut;
         private MenuFlyoutItem? _contextCopy;
         private MenuFlyoutItem? _contextPaste;
@@ -51,6 +38,7 @@ namespace Skrib
             ApplySavedLanguage();
             ApplySavedWordWrap();
             UpdateAboutVersion();
+            UpdateCaretInfo();
             _isInitialized = true;
         }
 
@@ -64,17 +52,48 @@ namespace Skrib
                     this.SetTitleBar(titleBar);
                 }
 
+                UpdateTitleBarButtons();
+            }
+            catch { }
+        }
+
+        // Adapts caption button hover colors so they stay visible in both light and dark themes.
+        private void UpdateTitleBarButtons()
+        {
+            try
+            {
                 var hwnd = WindowNative.GetWindowHandle(this);
                 var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
                 var appWindow = AppWindow.GetFromWindowId(windowId);
-                if (appWindow != null)
+                if (appWindow == null)
                 {
-                    var titleBarCtrl = appWindow.TitleBar;
-                    titleBarCtrl.ExtendsContentIntoTitleBar = true;
-                    titleBarCtrl.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
-                    titleBarCtrl.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
+                    return;
+                }
+
+                var titleBarCtrl = appWindow.TitleBar;
+                titleBarCtrl.ExtendsContentIntoTitleBar = true;
+                titleBarCtrl.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
+                titleBarCtrl.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
+
+                bool isLight = true;
+                if (this.Content is FrameworkElement root)
+                {
+                    isLight = root.ActualTheme != ElementTheme.Dark;
+                }
+
+                if (isLight)
+                {
+                    titleBarCtrl.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(20, 0, 0, 0);
+                    titleBarCtrl.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(35, 0, 0, 0);
+                    titleBarCtrl.ButtonHoverForegroundColor = Microsoft.UI.Colors.Black;
+                    titleBarCtrl.ButtonPressedForegroundColor = Microsoft.UI.Colors.Black;
+                }
+                else
+                {
                     titleBarCtrl.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(40, 255, 255, 255);
                     titleBarCtrl.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(60, 255, 255, 255);
+                    titleBarCtrl.ButtonHoverForegroundColor = Microsoft.UI.Colors.White;
+                    titleBarCtrl.ButtonPressedForegroundColor = Microsoft.UI.Colors.White;
                 }
             }
             catch { }
@@ -82,6 +101,12 @@ namespace Skrib
 
         private void InitializeContextMenu()
         {
+            _contextUndo = new MenuFlyoutItem { Text = "Annuler", Icon = new SymbolIcon(Symbol.Undo), Tag = "undo" };
+            _contextUndo.Click += Undo_Click;
+
+            _contextRedo = new MenuFlyoutItem { Text = "Rétablir", Icon = new SymbolIcon(Symbol.Redo), Tag = "redo" };
+            _contextRedo.Click += Redo_Click;
+
             _contextCut = new MenuFlyoutItem { Text = "Couper", Icon = new SymbolIcon(Symbol.Cut), Tag = "cut" };
             _contextCut.Click += Cut_Click;
 
@@ -95,6 +120,9 @@ namespace Skrib
             _contextSelectAll.Click += SelectAll_Click;
 
             var flyout = new MenuFlyout();
+            flyout.Items.Add(_contextUndo);
+            flyout.Items.Add(_contextRedo);
+            flyout.Items.Add(new MenuFlyoutSeparator());
             flyout.Items.Add(_contextCut);
             flyout.Items.Add(_contextCopy);
             flyout.Items.Add(_contextPaste);
@@ -119,6 +147,7 @@ namespace Skrib
             catch { }
         }
 
+        // Uses only AppWindow.SetIcon (no user32 P/Invoke, no icon handle leak).
         private void SetWindowIcon()
         {
             try
@@ -137,27 +166,9 @@ namespace Skrib
                     catch { }
                 }
 
-                if (File.Exists(iconPath))
+                if (File.Exists(iconPath) && appWindow != null)
                 {
-                    if (appWindow != null)
-                    {
-                        try { appWindow.SetIcon(iconPath); } catch { }
-                    }
-
-                    try
-                    {
-                        IntPtr hSmallIcon = LoadImage(IntPtr.Zero, iconPath, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
-                        if (hSmallIcon != IntPtr.Zero)
-                        {
-                            SendMessage(hwnd, WM_SETICON, ICON_SMALL, hSmallIcon);
-                        }
-                        IntPtr hBigIcon = LoadImage(IntPtr.Zero, iconPath, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
-                        if (hBigIcon != IntPtr.Zero)
-                        {
-                            SendMessage(hwnd, WM_SETICON, ICON_BIG, hBigIcon);
-                        }
-                    }
-                    catch { }
+                    try { appWindow.SetIcon(iconPath); } catch { }
                 }
             }
             catch { }
@@ -173,7 +184,7 @@ namespace Skrib
             }
             catch
             {
-                AboutDesc.Text = "Version 1.0.0";
+                AboutDesc.Text = "Version 1.0.2.0";
             }
         }
 
@@ -212,7 +223,7 @@ namespace Skrib
         private void ApplySavedTheme()
         {
             var theme = LoadTheme();
-            ApplyTheme(theme);
+            ApplyTheme(theme, save: false);
             switch (theme)
             {
                 case ElementTheme.Light:
@@ -238,13 +249,17 @@ namespace Skrib
             return ElementTheme.Default;
         }
 
-        private void ApplyTheme(ElementTheme theme)
+        private void ApplyTheme(ElementTheme theme, bool save = true)
         {
             if (this.Content is FrameworkElement root)
             {
                 root.RequestedTheme = theme;
             }
-            try { ApplicationData.Current.LocalSettings.Values["AppTheme"] = theme.ToString(); } catch { }
+            if (save)
+            {
+                try { ApplicationData.Current.LocalSettings.Values["AppTheme"] = theme.ToString(); } catch { }
+            }
+            UpdateTitleBarButtons();
         }
 
         private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -265,7 +280,7 @@ namespace Skrib
         private void ApplySavedLanguage()
         {
             var lang = LoadLanguage();
-            ApplyLanguage(lang);
+            ApplyLanguage(lang, save: false);
             LangComboBox.SelectedIndex = (lang == "en") ? 1 : 0;
         }
 
@@ -290,10 +305,13 @@ namespace Skrib
             }
         }
 
-        private void ApplyLanguage(string lang)
+        private void ApplyLanguage(string lang, bool save = true)
         {
             _currentLang = (lang == "en") ? "en" : "fr";
-            try { ApplicationData.Current.LocalSettings.Values["AppLanguage"] = _currentLang; } catch { }
+            if (save)
+            {
+                try { ApplicationData.Current.LocalSettings.Values["AppLanguage"] = _currentLang; } catch { }
+            }
 
             bool isEn = _currentLang == "en";
 
@@ -307,11 +325,15 @@ namespace Skrib
                 MenuExit.Text = "Exit";
 
                 MenuEdit.Title = "Edit";
+                MenuUndo.Text = "Undo";
+                MenuRedo.Text = "Redo";
                 MenuCut.Text = "Cut";
                 MenuCopy.Text = "Copy";
                 MenuPaste.Text = "Paste";
                 MenuSelectAll.Text = "Select All";
 
+                if (_contextUndo != null) _contextUndo.Text = "Undo";
+                if (_contextRedo != null) _contextRedo.Text = "Redo";
                 if (_contextCut != null) _contextCut.Text = "Cut";
                 if (_contextCopy != null) _contextCopy.Text = "Copy";
                 if (_contextPaste != null) _contextPaste.Text = "Paste";
@@ -350,11 +372,15 @@ namespace Skrib
                 MenuExit.Text = "Quitter";
 
                 MenuEdit.Title = "Édition";
+                MenuUndo.Text = "Annuler";
+                MenuRedo.Text = "Rétablir";
                 MenuCut.Text = "Couper";
                 MenuCopy.Text = "Copier";
                 MenuPaste.Text = "Coller";
                 MenuSelectAll.Text = "Tout sélectionner";
 
+                if (_contextUndo != null) _contextUndo.Text = "Annuler";
+                if (_contextRedo != null) _contextRedo.Text = "Rétablir";
                 if (_contextCut != null) _contextCut.Text = "Couper";
                 if (_contextCopy != null) _contextCopy.Text = "Copier";
                 if (_contextPaste != null) _contextPaste.Text = "Coller";
@@ -386,6 +412,7 @@ namespace Skrib
 
             UpdateAboutVersion();
             UpdateTitle();
+            UpdateCaretInfo();
         }
 
         #endregion
@@ -418,14 +445,16 @@ namespace Skrib
             var untitled = _currentLang == "en" ? "Untitled" : "Sans titre";
             var ready = _currentLang == "en" ? "Ready" : "Prêt";
             var name = _currentFile != null ? _currentFile.Name : untitled;
-            this.Title = $"Skrib - {name}{(_isDirty ? "*" : "")}";
+            var dirtyMark = _isDirty ? "*" : "";
+            this.Title = $"Skrib - {name}{dirtyMark}";
             if (WindowTitleText != null)
             {
                 WindowTitleText.Text = "Skrib";
             }
             if (WindowTitleStatus != null)
             {
-                WindowTitleStatus.Text = _currentFile != null ? name : (_currentLang == "en" ? "Untitled" : "Sans titre");
+                // Show the dirty marker in the visible custom title bar, not only in the OS title.
+                WindowTitleStatus.Text = $"{name}{dirtyMark}";
             }
             try
             {
@@ -437,10 +466,29 @@ namespace Skrib
             }
         }
 
-        private bool _titleRefreshQueued;
+        // Sets editor text without flagging the document as dirty.
+        private void SetEditorText(string text)
+        {
+            _suppressDirty = true;
+            try
+            {
+                Editor.Text = text;
+            }
+            finally
+            {
+                _suppressDirty = false;
+            }
+            _isDirty = false;
+            UpdateTitle();
+            UpdateCaretInfo();
+        }
 
         private void Editor_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (_suppressDirty)
+            {
+                return;
+            }
             _isDirty = true;
             if (_titleRefreshQueued)
             {
@@ -452,16 +500,49 @@ namespace Skrib
             {
                 _titleRefreshQueued = false;
                 UpdateTitle();
+                UpdateCaretInfo();
             });
+        }
+
+        private void Editor_SelectionChanged(object sender, RoutedEventArgs e)
+        {
+            UpdateCaretInfo();
+        }
+
+        // Updates the line/column/character count shown in the status bar.
+        private void UpdateCaretInfo()
+        {
+            try
+            {
+                string text = Editor?.Text ?? string.Empty;
+                int pos = Editor != null ? Editor.SelectionStart : 0;
+                pos = Math.Max(0, Math.Min(pos, text.Length));
+                int line = 1;
+                int lastBreak = -1;
+                for (int i = 0; i < pos; i++)
+                {
+                    if (text[i] == '\n')
+                    {
+                        line++;
+                        lastBreak = i;
+                    }
+                }
+                int col = pos - lastBreak;
+                bool isEn = _currentLang == "en";
+                string countLabel = isEn ? "chars" : "caractères";
+                CaretInfoText.Text = $"Ln {line}, Col {col} | {text.Length} {countLabel}";
+            }
+            catch { }
         }
 
         private async void NewFile_Click(object sender, RoutedEventArgs e)
         {
             if (!await AskSaveIfNeededAsync()) return;
-            Editor.Text = string.Empty;
+            SetEditorText(string.Empty);
             _currentFile = null;
             _isDirty = false;
             UpdateTitle();
+            UpdateCaretInfo();
         }
 
         private async void OpenFile_Click(object sender, RoutedEventArgs e)
@@ -482,10 +563,8 @@ namespace Skrib
                     try
                     {
                         var text = await FileIO.ReadTextAsync(file);
-                        Editor.Text = text;
                         _currentFile = file;
-                        _isDirty = false;
-                        UpdateTitle();
+                        SetEditorText(text);
                     }
                     catch (Exception ex)
                     {
@@ -515,7 +594,20 @@ namespace Skrib
             {
                 return await SaveAsAsync();
             }
-            await FileIO.WriteTextAsync(_currentFile, Editor.Text);
+            try
+            {
+                await FileIO.WriteTextAsync(_currentFile, Editor.Text);
+            }
+            catch (FileNotFoundException)
+            {
+                // The original file was moved or deleted: fall back to Save As.
+                return await SaveAsAsync();
+            }
+            catch (Exception ex) when ((uint)ex.HResult == 0x80070005)
+            {
+                // Access denied: fall back to Save As so the user can pick a new location.
+                return await SaveAsAsync();
+            }
             _isDirty = false;
             UpdateTitle();
             return true;
@@ -528,10 +620,12 @@ namespace Skrib
             picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
             picker.DefaultFileExtension = ".txt";
             var untitled = _currentLang == "en" ? "Untitled" : "Sans titre";
-            var filterName = _currentLang == "en" ? "Text Document" : "Texte";
+            var txtLabel = _currentLang == "en" ? "Text Document" : "Document texte (.txt)";
+            var mdLabel = _currentLang == "en" ? "Markdown" : "Markdown (.md)";
             picker.SuggestedFileName = _currentFile != null ? Path.GetFileNameWithoutExtension(_currentFile.Name) : untitled;
             picker.FileTypeChoices.Clear();
-            picker.FileTypeChoices.Add(filterName, new System.Collections.Generic.List<string>() { ".txt" });
+            picker.FileTypeChoices.Add(txtLabel, new System.Collections.Generic.List<string>() { ".txt" });
+            picker.FileTypeChoices.Add(mdLabel, new System.Collections.Generic.List<string>() { ".md" });
             var file = await picker.PickSaveFileAsync();
             if (file == null) return false;
             await FileIO.WriteTextAsync(file, Editor.Text);
@@ -577,78 +671,76 @@ namespace Skrib
             Application.Current.Exit();
         }
 
+        private void Undo_Click(object sender, RoutedEventArgs e)
+        {
+            if (Editor.CanUndo)
+            {
+                Editor.Undo();
+            }
+        }
+
+        private void Redo_Click(object sender, RoutedEventArgs e)
+        {
+            if (Editor.CanRedo)
+            {
+                Editor.Redo();
+            }
+        }
+
         private void Cut_Click(object sender, RoutedEventArgs e)
         {
-            var sel = Editor.SelectedText;
-            if (!string.IsNullOrEmpty(sel))
-            {
-                var dp = new DataPackage();
-                dp.SetText(sel);
-                Clipboard.SetContent(dp);
-                var start = Editor.SelectionStart;
-                Editor.Text = Editor.Text.Remove(start, Editor.SelectionLength);
-                _isDirty = true;
-                UpdateTitle();
-            }
+            Editor.CutSelectionToClipboard();
         }
 
         private void Copy_Click(object sender, RoutedEventArgs e)
         {
-            var sel = Editor.SelectedText;
-            if (!string.IsNullOrEmpty(sel))
-            {
-                var dp = new DataPackage();
-                dp.SetText(sel);
-                Clipboard.SetContent(dp);
-            }
+            Editor.CopySelectionToClipboard();
         }
 
-        private async void Paste_Click(object sender, RoutedEventArgs e)
+        private void Paste_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                var content = Clipboard.GetContent();
-                if (content.Contains(StandardDataFormats.Text))
-                {
-                    var text = await content.GetTextAsync();
-                    var start = Editor.SelectionStart;
-                    Editor.Text = Editor.Text.Substring(0, start) + text + Editor.Text.Substring(start + Editor.SelectionLength);
-                    _isDirty = true;
-                    UpdateTitle();
-                }
-            }
-            catch (Exception ex)
-            {
-                await ShowErrorAsync(_currentLang == "en" ? "Paste error" : "Erreur collage", ex.Message);
-            }
+            Editor.PasteFromClipboard();
         }
 
         private void SelectAll_Click(object sender, RoutedEventArgs e)
         {
             Editor.SelectAll();
+            Editor.Focus(FocusState.Programmatic);
         }
 
         private async Task ShowErrorAsync(string title, string message)
         {
-            var dlg = new ContentDialog
+            try
             {
-                Title = title,
-                Content = message,
-                CloseButtonText = "OK",
-                XamlRoot = this.Content.XamlRoot
-            };
-            await dlg.ShowAsync();
+                // ContentDialog requires a valid XamlRoot; skip if the window is not ready yet.
+                if (this.Content?.XamlRoot == null)
+                {
+                    return;
+                }
+                var dlg = new ContentDialog
+                {
+                    Title = title,
+                    Content = message,
+                    CloseButtonText = "OK",
+                    XamlRoot = this.Content.XamlRoot
+                };
+                await dlg.ShowAsync();
+            }
+            catch { }
         }
 
         public async Task OpenFileFromStorageFileAsync(StorageFile file)
         {
             try
             {
+                // Prompt to save current work before replacing it with the activated file.
+                if (!await AskSaveIfNeededAsync())
+                {
+                    return;
+                }
                 var text = await FileIO.ReadTextAsync(file);
-                Editor.Text = text;
                 _currentFile = file;
-                _isDirty = false;
-                UpdateTitle();
+                SetEditorText(text);
             }
             catch (Exception ex)
             {

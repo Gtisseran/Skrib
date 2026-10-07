@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Window
     x:Class="Skrib.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -41,7 +41,8 @@
                            FontSize="12"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                            HorizontalAlignment="Center"
-                           VerticalAlignment="Center" />
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" />
             </Grid>
         </Border>
 
@@ -102,26 +103,55 @@
                         </MenuFlyoutItem>
                     </MenuBarItem>
                     <MenuBarItem x:Name="MenuEdit" Title="Édition">
+                        <MenuFlyoutItem x:Name="MenuUndo" Text="Annuler" Click="Undo_Click">
+                            <MenuFlyoutItem.Icon>
+                                <SymbolIcon Symbol="Undo" />
+                            </MenuFlyoutItem.Icon>
+                            <MenuFlyoutItem.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Z" Modifiers="Control" />
+                            </MenuFlyoutItem.KeyboardAccelerators>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="MenuRedo" Text="Rétablir" Click="Redo_Click">
+                            <MenuFlyoutItem.Icon>
+                                <SymbolIcon Symbol="Redo" />
+                            </MenuFlyoutItem.Icon>
+                            <MenuFlyoutItem.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Y" Modifiers="Control" />
+                            </MenuFlyoutItem.KeyboardAccelerators>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutSeparator />
                         <MenuFlyoutItem x:Name="MenuCut" Text="Couper" Click="Cut_Click">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="Cut" />
                             </MenuFlyoutItem.Icon>
+                            <MenuFlyoutItem.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="X" Modifiers="Control" />
+                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="MenuCopy" Text="Copier" Click="Copy_Click">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="Copy" />
                             </MenuFlyoutItem.Icon>
+                            <MenuFlyoutItem.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="C" Modifiers="Control" />
+                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="MenuPaste" Text="Coller" Click="Paste_Click">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="Paste" />
                             </MenuFlyoutItem.Icon>
+                            <MenuFlyoutItem.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="V" Modifiers="Control" />
+                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                         <MenuFlyoutSeparator />
                         <MenuFlyoutItem x:Name="MenuSelectAll" Text="Tout sélectionner" Click="SelectAll_Click">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="SelectAll" />
                             </MenuFlyoutItem.Icon>
+                            <MenuFlyoutItem.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="A" Modifiers="Control" />
+                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                     </MenuBarItem>
                 </MenuBar>
@@ -143,7 +173,7 @@
             </Grid>
 
             <!-- Editor text area -->
-            <TextBox x:Name="Editor" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="14" TextChanged="Editor_TextChanged" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+            <TextBox x:Name="Editor" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="14" TextChanged="Editor_TextChanged" SelectionChanged="Editor_SelectionChanged" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto">
                 <TextBox.Resources>
                     <ResourceDictionary>
                         <ResourceDictionary.ThemeDictionaries>
@@ -164,10 +194,17 @@
 
             <!-- Status bar with icon -->
             <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Padding="10,4">
-                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <FontIcon x:Name="StatusIcon" Glyph="&#xE7C3;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                    <TextBlock x:Name="StatusText" Text="Prêt" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                </StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <FontIcon x:Name="StatusIcon" Glyph="&#xE7C3;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                        <TextBlock x:Name="StatusText" Text="Prêt" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" x:Name="CaretInfoText" Text="Ln 1, Col 1" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                </Grid>
             </Border>
         </Grid>
 
@@ -415,4 +452,3 @@
         </Grid>
     </Grid>
 </Window>
-

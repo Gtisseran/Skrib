@@ -1,67 +1,75 @@
 ﻿using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-using Microsoft.UI.Xaml.Shapes;
-using Microsoft.Windows.AppLifecycle;
 using System;
-using System.Collections.Generic;
-using System.IO;
+using Microsoft.Windows.AppLifecycle;
 using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Storage;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
 
 namespace Skrib
 {
-    /// <summary>
-    /// Provides application-specific behavior to supplement the default Application class.
-    /// </summary>
+    // Application entry point. Handles single-instance redirection and file activation (.txt / .md).
     public partial class App : Application
     {
         private Window? _window;
 
-        /// <summary>
-        /// Initializes the singleton application object.  This is the first line of authored code
-        /// executed, and as such is the logical equivalent of main() or WinMain().
-        /// </summary>
         public App()
         {
             InitializeComponent();
         }
 
-        /// <summary>
-        /// Invoked when the application is launched (including via .txt / .md file association).
-        /// </summary>
-        /// <param name="args">Details about the launch request and process.</param>
+        // Invoked when the application is launched (including via .txt / .md file association).
         protected override async void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            StorageFile? fileToOpen = null;
+            // Register (or find) the main instance so a second launch redirects instead of opening a new window.
+            var mainInstance = AppInstance.FindOrRegisterForKey("SkribMain");
+            var activatedArgs = AppInstance.GetCurrent().GetActivatedEventArgs();
 
-            var activated = Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().GetActivatedEventArgs();
-            if (activated.Kind == ExtendedActivationKind.File
-                && activated.Data is IFileActivatedEventArgs fileArgs)
+            if (!mainInstance.IsCurrent)
             {
-                fileToOpen = fileArgs.Files.OfType<StorageFile>().FirstOrDefault();
+                // Redirect this activation to the running instance, then exit.
+                await mainInstance.RedirectActivationToAsync(activatedArgs);
+                System.Diagnostics.Process.GetCurrentProcess().Kill();
+                return;
             }
+
+            mainInstance.Activated += OnAppActivated;
 
             var window = new MainWindow();
             _window = window;
             window.Activate();
 
+            var fileToOpen = GetFileFromArgs(activatedArgs);
             if (fileToOpen != null)
             {
                 await window.OpenFileFromStorageFileAsync(fileToOpen);
             }
+        }
+
+        // Handles activations redirected from a second instance (e.g. double-click on a file while running).
+        private void OnAppActivated(object? sender, AppActivationArguments args)
+        {
+            var file = GetFileFromArgs(args);
+            if (file == null || _window is not MainWindow mainWindow)
+            {
+                return;
+            }
+
+            // Switch back to the UI thread before touching the window.
+            _window.DispatcherQueue.TryEnqueue(async () =>
+            {
+                await mainWindow.OpenFileFromStorageFileAsync(file);
+            });
+        }
+
+        // Extracts the first storage file from file activation args, if any.
+        private static StorageFile? GetFileFromArgs(AppActivationArguments args)
+        {
+            if (args.Kind == ExtendedActivationKind.File
+                && args.Data is IFileActivatedEventArgs fileArgs)
+            {
+                return fileArgs.Files.OfType<StorageFile>().FirstOrDefault();
+            }
+            return null;
         }
     }
 }
