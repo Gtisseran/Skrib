@@ -54,7 +54,6 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Top row: MenuBar + Settings button at the end -->
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -156,7 +155,6 @@
                     </MenuBarItem>
                 </MenuBar>
 
-                <!-- Settings button: icon-only, at row end -->
                 <Button Grid.Column="1"
                         x:Name="SettingsButton"
                         Click="SettingsButton_Click"
@@ -172,7 +170,6 @@
                 </Button>
             </Grid>
 
-            <!-- Editor text area -->
             <TextBox x:Name="Editor" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="14" TextChanged="Editor_TextChanged" SelectionChanged="Editor_SelectionChanged" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto">
                 <TextBox.Resources>
                     <ResourceDictionary>
@@ -192,7 +189,6 @@
                 </TextBox.Resources>
             </TextBox>
 
-            <!-- Status bar with icon -->
             <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Padding="10,4">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -208,247 +204,231 @@
             </Border>
         </Grid>
 
-        <!-- SETTINGS PAGE (WINDOWS 11 STYLE) -->
+        <!-- SETTINGS PAGE (NOTEPAD STYLE) -->
         <Grid x:Name="SettingsView" Grid.Row="1" Visibility="Collapsed" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- Settings header: back button + title -->
-            <Grid Grid.Row="0" Margin="0,0,0,10" Padding="8,8,8,0">
-                <Border Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="0,0,0,1"
-                        CornerRadius="0"
-                        Padding="10,8"
-                        HorizontalAlignment="Stretch">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+            <!-- Header: back button + large title, like Windows Notepad -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Padding="20,16,20,12" VerticalAlignment="Center">
+                <Button x:Name="BackButton"
+                        Click="BackButton_Click"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="6,4"
+                        CornerRadius="6"
+                        VerticalAlignment="Center"
+                        ToolTipService.ToolTip="Retour">
+                    <FontIcon Glyph="&#xE72B;" FontSize="16" />
+                </Button>
+                <TextBlock x:Name="SettingsTitleText"
+                           Text="Paramètres"
+                           FontSize="28"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+            </StackPanel>
 
-                        <Button x:Name="BackButton"
-                                Grid.Column="0"
-                                Click="BackButton_Click"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Padding="6,4"
-                                CornerRadius="6"
-                                HorizontalAlignment="Left"
-                                VerticalAlignment="Center"
-                                ToolTipService.ToolTip="Retour">
-                            <FontIcon Glyph="&#xE72B;" FontSize="16" />
-                        </Button>
+            <!-- Content: main column (stretched cards) + right about panel -->
+            <Grid Grid.Row="1" Padding="20,0,20,24" ColumnSpacing="24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="300" />
+                </Grid.ColumnDefinitions>
 
-                        <TextBlock x:Name="SettingsTitleText"
-                                   Grid.Column="1"
-                                   Text="Paramètres"
-                                   FontSize="22"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   Margin="10,0,0,0" />
-                    </Grid>
-                </Border>
-            </Grid>
+                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                    <StackPanel HorizontalAlignment="Stretch" MaxWidth="1100" Spacing="24">
 
-            <!-- Settings content using Win11-style cards and dropdowns -->
-            <ScrollViewer Grid.Row="1" Padding="20,0,20,24">
-                 <StackPanel MaxWidth="860" HorizontalAlignment="Left" Spacing="20">
+                        <!-- Appearance -->
+                        <StackPanel Spacing="8" HorizontalAlignment="Stretch">
+                            <TextBlock x:Name="SectionAppearanceTitle" Text="Apparence" FontSize="14" FontWeight="SemiBold" Margin="4,0,0,4" />
 
-                    <!-- SECTION 1: APPEARANCE -->
-                    <StackPanel Spacing="8">
-                        <TextBlock x:Name="SectionAppearanceTitle" Text="Apparence" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Margin="4,0,0,4" />
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    MinHeight="76"
+                                    Padding="16,12"
+                                    HorizontalAlignment="Stretch">
+                                <Grid ColumnSpacing="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
 
-                        <!-- Theme card with ComboBox (dropdown menu) -->
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                MinHeight="68"
-                                Padding="16,12">
-                            <Grid ColumnSpacing="16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
+                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                            VerticalAlignment="Center">
+                                        <FontIcon Glyph="&#xE790;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    </Border>
 
-                                <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
-                                        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                        VerticalAlignment="Center">
-                                    <FontIcon Glyph="&#xE790;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                                </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock x:Name="ThemeHeaderTitle" Text="Thème de l'application" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <TextBlock x:Name="ThemeHeaderDesc" Text="Choisissez le thème à afficher dans Skrib" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                    </StackPanel>
 
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                    <TextBlock x:Name="ThemeHeaderTitle" Text="Thème de l'application" FontWeight="SemiBold" FontSize="14" />
-                                    <TextBlock x:Name="ThemeHeaderDesc" Text="Choisissez le thème à afficher dans Skrib" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                </StackPanel>
-
-                                <ComboBox Grid.Column="2" x:Name="ThemeComboBox"
-                                          SelectionChanged="ThemeComboBox_SelectionChanged"
-                                          Width="280"
-                                          HorizontalAlignment="Right"
-                                          VerticalAlignment="Center"
-                                          HorizontalContentAlignment="Stretch"
-                                          VerticalContentAlignment="Center"
-                                          Padding="10,8,10,8">
-                                    <ComboBoxItem Tag="Light" VerticalContentAlignment="Center" HorizontalContentAlignment="Stretch" Padding="10,8,10,8">
-                                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                            <FontIcon Glyph="&#xE706;" FontSize="16" VerticalAlignment="Center" />
-                                            <TextBlock x:Name="ThemeLightComboText" Text="Clair" VerticalAlignment="Center" />
-                                        </StackPanel>
-                                    </ComboBoxItem>
-                                    <ComboBoxItem Tag="Dark" VerticalContentAlignment="Center" HorizontalContentAlignment="Stretch" Padding="10,8,10,8">
-                                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                            <FontIcon Glyph="&#xE708;" FontSize="16" VerticalAlignment="Center" />
-                                            <TextBlock x:Name="ThemeDarkComboText" Text="Sombre" VerticalAlignment="Center" />
-                                        </StackPanel>
-                                    </ComboBoxItem>
-                                    <ComboBoxItem Tag="Default" VerticalContentAlignment="Center" HorizontalContentAlignment="Stretch" Padding="10,8,10,8">
-                                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                            <FontIcon Glyph="&#xE770;" FontSize="16" VerticalAlignment="Center" />
-                                            <TextBlock x:Name="ThemeSystemComboText" Text="Utiliser le thème du système" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="170" />
-                                        </StackPanel>
-                                    </ComboBoxItem>
-                                </ComboBox>
-                            </Grid>
-                        </Border>
-
-                        <!-- Language card with ComboBox (dropdown) and flags -->
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                MinHeight="68"
-                                Padding="16,12">
-                            <Grid ColumnSpacing="16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
-                                        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                        VerticalAlignment="Center">
-                                    <FontIcon Glyph="&#xE775;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                                </Border>
-
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                    <TextBlock x:Name="LangHeaderTitle" Text="Langue" FontWeight="SemiBold" FontSize="14" />
-                                    <TextBlock x:Name="LangHeaderDesc" Text="Choisissez la langue de l'application" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                </StackPanel>
-
-                                <ComboBox Grid.Column="2" x:Name="LangComboBox"
-                                          SelectionChanged="LangComboBox_SelectionChanged"
-                                          MinWidth="240"
-                                          VerticalContentAlignment="Center"
-                                          HorizontalAlignment="Right"
-                                          VerticalAlignment="Center">
-                                    <!-- French option with flag -->
-                                    <ComboBoxItem Tag="fr" VerticalContentAlignment="Center">
-                                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                            <Border Width="22" Height="15" CornerRadius="2" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" VerticalAlignment="Center">
-                                                <Image Source="ms-appx:///Assets/Flags/fr.png" Stretch="Fill" />
-                                            </Border>
-                                            <TextBlock x:Name="LangFrComboText" Text="Français (FR)" VerticalAlignment="Center" FontWeight="Medium" />
-                                        </StackPanel>
-                                    </ComboBoxItem>
-
-                                    <!-- English option with flag -->
-                                    <ComboBoxItem Tag="en" VerticalContentAlignment="Center">
-                                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                            <Border Width="22" Height="15" CornerRadius="2" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" VerticalAlignment="Center">
-                                                <Image Source="ms-appx:///Assets/Flags/en.png" Stretch="Fill" />
-                                            </Border>
-                                            <TextBlock x:Name="LangEnComboText" Text="English (EN)" VerticalAlignment="Center" FontWeight="Medium" />
-                                        </StackPanel>
-                                    </ComboBoxItem>
-                                </ComboBox>
-                            </Grid>
-                        </Border>
-                    </StackPanel>
-
-                    <!-- SECTION 2: EDITOR -->
-                    <StackPanel Spacing="8">
-                        <TextBlock x:Name="SectionEditorTitle" Text="Éditeur" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Margin="4,0,0,4" />
-
-                        <!-- Word wrap card with ToggleSwitch -->
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                MinHeight="68"
-                                Padding="16,12">
-                            <Grid ColumnSpacing="16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
-                                        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                        VerticalAlignment="Center">
-                                    <FontIcon Glyph="&#xE751;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                                </Border>
-
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                    <TextBlock x:Name="WordWrapTitle" Text="Retour automatique à la ligne" FontWeight="SemiBold" FontSize="14" />
-                                    <TextBlock x:Name="WordWrapDesc" Text="Ajuster le texte pour qu'il tienne dans la largeur de la fenêtre" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                </StackPanel>
-
-                                <ToggleSwitch Grid.Column="2" x:Name="WordWrapToggle"
-                                              IsOn="True"
-                                              Toggled="WordWrapToggle_Toggled"
+                                    <ComboBox Grid.Column="2" x:Name="ThemeComboBox"
+                                              SelectionChanged="ThemeComboBox_SelectionChanged"
+                                              Width="280"
                                               HorizontalAlignment="Right"
-                                              VerticalAlignment="Center"
-                                              Margin="0,0,4,0"
-                                              MinWidth="0"
-                                              OnContent="" OffContent="" />
-                            </Grid>
-                        </Border>
+                                              VerticalAlignment="Center">
+                                        <ComboBoxItem Tag="Light">
+                                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                                <FontIcon Glyph="&#xE706;" FontSize="16" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="ThemeLightComboText" Text="Clair" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                            </StackPanel>
+                                        </ComboBoxItem>
+                                        <ComboBoxItem Tag="Dark">
+                                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                                <FontIcon Glyph="&#xE708;" FontSize="16" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="ThemeDarkComboText" Text="Sombre" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                            </StackPanel>
+                                        </ComboBoxItem>
+                                        <ComboBoxItem Tag="Default">
+                                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                                <FontIcon Glyph="&#xE770;" FontSize="16" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="ThemeSystemComboText" Text="Utiliser le thème du système" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                            </StackPanel>
+                                        </ComboBoxItem>
+                                    </ComboBox>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    MinHeight="76"
+                                    Padding="16,12"
+                                    HorizontalAlignment="Stretch">
+                                <Grid ColumnSpacing="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
+                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                            VerticalAlignment="Center">
+                                        <FontIcon Glyph="&#xE775;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock x:Name="LangHeaderTitle" Text="Langue" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <TextBlock x:Name="LangHeaderDesc" Text="Choisissez la langue de l'application" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <ComboBox Grid.Column="2" x:Name="LangComboBox"
+                                              SelectionChanged="LangComboBox_SelectionChanged"
+                                              Width="240"
+                                              HorizontalAlignment="Right"
+                                              VerticalAlignment="Center">
+                                        <ComboBoxItem Tag="fr">
+                                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                                <Border Width="22" Height="15" CornerRadius="2" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" VerticalAlignment="Center">
+                                                    <Image Source="ms-appx:///Assets/Flags/fr.png" Stretch="Fill" />
+                                                </Border>
+                                                <TextBlock x:Name="LangFrComboText" Text="Français (FR)" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                            </StackPanel>
+                                        </ComboBoxItem>
+                                        <ComboBoxItem Tag="en">
+                                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                                <Border Width="22" Height="15" CornerRadius="2" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" VerticalAlignment="Center">
+                                                    <Image Source="ms-appx:///Assets/Flags/en.png" Stretch="Fill" />
+                                                </Border>
+                                                <TextBlock x:Name="LangEnComboText" Text="English (EN)" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                            </StackPanel>
+                                        </ComboBoxItem>
+                                    </ComboBox>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Editor -->
+                        <StackPanel Spacing="8" HorizontalAlignment="Stretch">
+                            <TextBlock x:Name="SectionEditorTitle" Text="Éditeur" FontSize="14" FontWeight="SemiBold" Margin="4,0,0,4" />
+
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    MinHeight="76"
+                                    Padding="16,12"
+                                    HorizontalAlignment="Stretch">
+                                <Grid ColumnSpacing="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
+                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                            VerticalAlignment="Center">
+                                        <FontIcon Glyph="&#xE751;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock x:Name="WordWrapTitle" Text="Retour automatique à la ligne" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <TextBlock x:Name="WordWrapDesc" Text="Ajuster le texte pour qu'il tienne dans la largeur de la fenêtre" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                        <TextBlock x:Name="WordWrapStateText" Text="Activé" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Width="70" TextAlignment="Right" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <ToggleSwitch x:Name="WordWrapToggle"
+                                                      IsOn="True"
+                                                      Toggled="WordWrapToggle_Toggled"
+                                                      VerticalAlignment="Center"
+                                                      Margin="0,0,4,0"
+                                                      MinWidth="0"
+                                                      OnContent="" OffContent="" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+
                     </StackPanel>
+                </ScrollViewer>
 
-                    <!-- SECTION 3: ABOUT -->
-                    <StackPanel Spacing="8">
-                        <TextBlock x:Name="SectionAboutTitle" Text="À propos" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Margin="4,0,0,4" />
+                <!-- Right about panel, like Windows Notepad -->
+                <StackPanel Grid.Column="1" Spacing="8" HorizontalAlignment="Stretch" VerticalAlignment="Top">
+                    <TextBlock x:Name="SectionAboutTitle" Text="À propos de cette application" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
 
-                        <!-- About Skrib card -->
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                MinHeight="68"
-                                Padding="16,12">
-                            <Grid ColumnSpacing="16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            MinHeight="76"
+                            Padding="16,12"
+                            HorizontalAlignment="Stretch">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
 
-                                <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
-                                        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                        VerticalAlignment="Center">
-                                    <Image Source="ms-appx:///Assets/Square44x44Logo.targetsize-24.png" Width="24" Height="24"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
+                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
+                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    VerticalAlignment="Center">
+                                <Image Source="ms-appx:///Assets/Square44x44Logo.targetsize-24.png" Width="24" Height="24"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
 
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                    <TextBlock x:Name="AboutTitle" Text="Skrib" FontWeight="SemiBold" FontSize="14" />
-                                    <TextBlock x:Name="AboutDesc" Text="Version" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-                    </StackPanel>
-
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                <TextBlock x:Name="AboutTitle" Text="Skrib" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                <TextBlock x:Name="AboutDesc" Text="Version" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </StackPanel>
-            </ScrollViewer>
+
+            </Grid>
         </Grid>
     </Grid>
 </Window>

@@ -39,6 +39,7 @@ namespace Skrib
             ApplySavedWordWrap();
             UpdateAboutVersion();
             UpdateCaretInfo();
+            UpdateWordWrapState();
             _isInitialized = true;
         }
 
@@ -359,7 +360,7 @@ namespace Skrib
                 WordWrapTitle.Text = "Word wrap";
                 WordWrapDesc.Text = "Wrap long lines of text to fit the window width";
 
-                SectionAboutTitle.Text = "About";
+                SectionAboutTitle.Text = "About this app";
                 AboutTitle.Text = "Skrib";
             }
             else
@@ -406,13 +407,14 @@ namespace Skrib
                 WordWrapTitle.Text = "Retour automatique à la ligne";
                 WordWrapDesc.Text = "Ajuster le texte pour qu'il tienne dans la largeur de la fenêtre";
 
-                SectionAboutTitle.Text = "À propos";
+                SectionAboutTitle.Text = "À propos de cette application";
                 AboutTitle.Text = "Skrib";
             }
 
             UpdateAboutVersion();
             UpdateTitle();
             UpdateCaretInfo();
+            UpdateWordWrapState();
         }
 
         #endregion
@@ -428,6 +430,7 @@ namespace Skrib
                 {
                     WordWrapToggle.IsOn = isWrap;
                     Editor.TextWrapping = isWrap ? TextWrapping.Wrap : TextWrapping.NoWrap;
+                    UpdateWordWrapState();
                 }
             }
             catch { }
@@ -438,6 +441,19 @@ namespace Skrib
             if (!_isInitialized) return;
             Editor.TextWrapping = WordWrapToggle.IsOn ? TextWrapping.Wrap : TextWrapping.NoWrap;
             try { ApplicationData.Current.LocalSettings.Values["WordWrap"] = WordWrapToggle.IsOn; } catch { }
+            UpdateWordWrapState();
+        }
+
+        // Keeps the toggle state label in sync (fixed-width label so the toggle never shifts).
+        private void UpdateWordWrapState()
+        {
+            try
+            {
+                bool isOn = WordWrapToggle != null && WordWrapToggle.IsOn;
+                bool isEn = _currentLang == "en";
+                WordWrapStateText.Text = isOn ? (isEn ? "On" : "Activé") : (isEn ? "Off" : "Désactivé");
+            }
+            catch { }
         }
 
         private void UpdateTitle()
