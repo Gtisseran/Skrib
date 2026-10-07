@@ -205,7 +205,7 @@
         </Grid>
 
         <!-- SETTINGS PAGE (NOTEPAD STYLE) -->
-        <Grid x:Name="SettingsView" Grid.Row="1" Visibility="Collapsed" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid x:Name="SettingsView" Grid.Row="1" Visibility="Collapsed" Background="Transparent">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -230,15 +230,39 @@
                            VerticalAlignment="Center" />
             </StackPanel>
 
-            <!-- Content: main column (stretched cards) + right about panel -->
-            <Grid Grid.Row="1" Padding="20,0,20,24" ColumnSpacing="24">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="300" />
-                </Grid.ColumnDefinitions>
+            <!-- Content: responsive (side-by-side when wide, stacked when narrow) -->
+            <ScrollViewer Grid.Row="1" Padding="20,0,20,24" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid x:Name="SettingsContentGrid" ColumnSpacing="24" RowSpacing="24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition x:Name="AboutColumn" Width="300" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel HorizontalAlignment="Stretch" Spacing="24">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup>
+                            <VisualState x:Name="SettingsWideState">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="880" />
+                                </VisualState.StateTriggers>
+                            </VisualState>
+                            <VisualState x:Name="SettingsNarrowState">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="0" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters>
+                                    <Setter Target="AboutColumn.Width" Value="0" />
+                                    <Setter Target="SettingsAboutColumn.(Grid.Row)" Value="1" />
+                                    <Setter Target="SettingsAboutColumn.(Grid.Column)" Value="0" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
+
+                    <StackPanel x:Name="SettingsMainColumn" Grid.Column="0" Grid.Row="0" HorizontalAlignment="Stretch" Spacing="24">
 
                         <!-- Appearance -->
                         <StackPanel Spacing="8" HorizontalAlignment="Stretch">
@@ -394,10 +418,9 @@
                         </StackPanel>
 
                     </StackPanel>
-                </ScrollViewer>
 
-                <!-- Right about panel, like Windows Notepad -->
-                <StackPanel Grid.Column="1" Spacing="8" HorizontalAlignment="Stretch" VerticalAlignment="Top">
+                    <!-- Right about panel, like Windows Notepad (moves below when narrow) -->
+                    <StackPanel x:Name="SettingsAboutColumn" Grid.Column="1" Grid.Row="0" Spacing="8" HorizontalAlignment="Stretch" VerticalAlignment="Top">
                     <TextBlock x:Name="SectionAboutTitle" Text="À propos de cette application" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
 
                     <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -426,9 +449,10 @@
                             </StackPanel>
                         </Grid>
                     </Border>
-                </StackPanel>
+                    </StackPanel>
 
-            </Grid>
+                </Grid>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </Window>

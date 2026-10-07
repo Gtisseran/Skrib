@@ -141,8 +141,8 @@ namespace Skrib
                 var appWindow = AppWindow.GetFromWindowId(windowId);
                 if (appWindow?.Presenter is OverlappedPresenter presenter)
                 {
-                    presenter.PreferredMinimumWidth = 500;
-                    presenter.PreferredMinimumHeight = 350;
+                    presenter.PreferredMinimumWidth = 600;
+                    presenter.PreferredMinimumHeight = 450;
                 }
             }
             catch { }
