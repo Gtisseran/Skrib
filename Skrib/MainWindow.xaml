@@ -237,8 +237,8 @@
                     <ColumnDefinition Width="300" />
                 </Grid.ColumnDefinitions>
 
-                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
-                    <StackPanel HorizontalAlignment="Stretch" MaxWidth="1100" Spacing="24">
+                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel HorizontalAlignment="Stretch" Spacing="24">
 
                         <!-- Appearance -->
                         <StackPanel Spacing="8" HorizontalAlignment="Stretch">
