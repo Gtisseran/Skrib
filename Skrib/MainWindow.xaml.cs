@@ -363,6 +363,7 @@ namespace Skrib
                 SectionAboutTitle.Text = "About this app";
                 AboutTitle.Text = "Skrib";
                 GitHubButtonText.Text = "View on GitHub";
+                StoreButtonText.Text = "Check for updates on Microsoft Store";
             }
             else
             {
@@ -411,6 +412,7 @@ namespace Skrib
                 SectionAboutTitle.Text = "À propos de cette application";
                 AboutTitle.Text = "Skrib";
                 GitHubButtonText.Text = "Voir sur GitHub";
+                StoreButtonText.Text = "Rechercher les mises à jour sur le Microsoft Store";
             }
 
             UpdateAboutVersion();
@@ -684,6 +686,20 @@ namespace Skrib
             try
             {
                 await Launcher.LaunchUriAsync(new Uri("https://github.com/Gtisseran/Skrib"));
+            }
+            catch { }
+        }
+
+        // Opens the Microsoft Store listing (updates are handled by the Store, no GitHub updater).
+        private async void StoreButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                bool launched = await Launcher.LaunchUriAsync(new Uri("ms-windows-store://pdp/?productid=9p9tb8st018k"));
+                if (!launched)
+                {
+                    await Launcher.LaunchUriAsync(new Uri("https://apps.microsoft.com/detail/9p9tb8st018k"));
+                }
             }
             catch { }
         }
