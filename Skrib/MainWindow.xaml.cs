@@ -731,6 +731,9 @@ namespace Skrib
             }
         }
 
+        // NOTE: Edit menu items have no KeyboardAccelerators on purpose.
+        // The TextBox already handles Ctrl+Z/Y/X/C/V/A natively; adding
+        // accelerators would run the action twice (e.g. pasted text duplicated).
         private void Cut_Click(object sender, RoutedEventArgs e)
         {
             Editor.CutSelectionToClipboard();

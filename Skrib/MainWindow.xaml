@@ -106,51 +106,33 @@
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="Undo" />
                             </MenuFlyoutItem.Icon>
-                            <MenuFlyoutItem.KeyboardAccelerators>
-                                <KeyboardAccelerator Key="Z" Modifiers="Control" />
-                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="MenuRedo" Text="Rétablir" Click="Redo_Click">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="Redo" />
                             </MenuFlyoutItem.Icon>
-                            <MenuFlyoutItem.KeyboardAccelerators>
-                                <KeyboardAccelerator Key="Y" Modifiers="Control" />
-                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                         <MenuFlyoutSeparator />
                         <MenuFlyoutItem x:Name="MenuCut" Text="Couper" Click="Cut_Click">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="Cut" />
                             </MenuFlyoutItem.Icon>
-                            <MenuFlyoutItem.KeyboardAccelerators>
-                                <KeyboardAccelerator Key="X" Modifiers="Control" />
-                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="MenuCopy" Text="Copier" Click="Copy_Click">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="Copy" />
                             </MenuFlyoutItem.Icon>
-                            <MenuFlyoutItem.KeyboardAccelerators>
-                                <KeyboardAccelerator Key="C" Modifiers="Control" />
-                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="MenuPaste" Text="Coller" Click="Paste_Click">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="Paste" />
                             </MenuFlyoutItem.Icon>
-                            <MenuFlyoutItem.KeyboardAccelerators>
-                                <KeyboardAccelerator Key="V" Modifiers="Control" />
-                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                         <MenuFlyoutSeparator />
                         <MenuFlyoutItem x:Name="MenuSelectAll" Text="Tout sélectionner" Click="SelectAll_Click">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="SelectAll" />
                             </MenuFlyoutItem.Icon>
-                            <MenuFlyoutItem.KeyboardAccelerators>
-                                <KeyboardAccelerator Key="A" Modifiers="Control" />
-                            </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
                     </MenuBarItem>
                 </MenuBar>
