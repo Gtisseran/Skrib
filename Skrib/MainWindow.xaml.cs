@@ -364,7 +364,6 @@ namespace Skrib
                 AboutTitle.Text = "Skrib";
                 GitHubButtonText.Text = "View on GitHub";
                 StoreButtonText.Text = "Check for updates";
-                ToolTipService.SetToolTip(StoreButton, "Open the Microsoft Store page (updates install from the Store)");
             }
             else
             {
@@ -414,7 +413,6 @@ namespace Skrib
                 AboutTitle.Text = "Skrib";
                 GitHubButtonText.Text = "Voir sur GitHub";
                 StoreButtonText.Text = "Vérifier les mises à jour";
-                ToolTipService.SetToolTip(StoreButton, "Ouvrir la page Microsoft Store (mises é jour installées via le Store)");
             }
 
             UpdateAboutVersion();
