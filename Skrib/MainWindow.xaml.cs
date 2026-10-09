@@ -360,10 +360,10 @@ namespace Skrib
 
                 SectionAboutTitle.Text = "About this app";
                 AboutTitle.Text = "Skrib";
-                GitHubButtonText.Text = "View on GitHub";
-                StoreButtonText.Text = "Check for updates";
-                RateButtonText.Text = "Rate Skrib";
-                FeedbackButtonText.Text = "Send feedback";
+                GitHubButtonText.Text = "GitHub";
+                StoreButtonText.Text = "Updates";
+                RateButtonText.Text = "Rate";
+                FeedbackButtonText.Text = "Feedback";
             }
             else
             {
@@ -411,10 +411,10 @@ namespace Skrib
 
                 SectionAboutTitle.Text = "À propos de cette application";
                 AboutTitle.Text = "Skrib";
-                GitHubButtonText.Text = "Voir sur GitHub";
-                StoreButtonText.Text = "Vérifier les mises à jour";
-                RateButtonText.Text = "Noter Skrib";
-                FeedbackButtonText.Text = "Envoyer un commentaire";
+                GitHubButtonText.Text = "GitHub";
+                StoreButtonText.Text = "Mises à jour";
+                RateButtonText.Text = "Noter";
+                FeedbackButtonText.Text = "Commentaire";
             }
 
             UpdateAboutVersion();
@@ -730,7 +730,7 @@ namespace Skrib
                 {
                     AcceptsReturn = true,
                     TextWrapping = TextWrapping.Wrap,
-                    MinHeight = 120,
+                    MinHeight = 180,
                     PlaceholderText = isEn ? "Describe your idea or issue..." : "Décrivez votre idée ou probléme..."
                 };
                 var dlg = new ContentDialog
@@ -740,6 +740,7 @@ namespace Skrib
                     PrimaryButtonText = isEn ? "Send" : "Envoyer",
                     CloseButtonText = isEn ? "Cancel" : "Annuler",
                     DefaultButton = ContentDialogButton.Primary,
+                    MinWidth = 420,
                     XamlRoot = this.Content.XamlRoot
                 };
                 if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
