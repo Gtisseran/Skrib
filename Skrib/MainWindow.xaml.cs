@@ -179,9 +179,7 @@ namespace Skrib
         {
             try
             {
-                var v = Windows.ApplicationModel.Package.Current.Id.Version;
-                var versionStr = $"{v.Major}.{v.Minor}.{v.Build}.{v.Revision}";
-                AboutDesc.Text = $"Version {versionStr}";
+                AboutDesc.Text = "Version " + GetVersionString();
             }
             catch
             {
@@ -364,6 +362,8 @@ namespace Skrib
                 AboutTitle.Text = "Skrib";
                 GitHubButtonText.Text = "View on GitHub";
                 StoreButtonText.Text = "Check for updates";
+                RateButtonText.Text = "Rate Skrib";
+                FeedbackButtonText.Text = "Send feedback";
             }
             else
             {
@@ -413,6 +413,8 @@ namespace Skrib
                 AboutTitle.Text = "Skrib";
                 GitHubButtonText.Text = "Voir sur GitHub";
                 StoreButtonText.Text = "Vérifier les mises à jour";
+                RateButtonText.Text = "Noter Skrib";
+                FeedbackButtonText.Text = "Envoyer un commentaire";
             }
 
             UpdateAboutVersion();
@@ -702,6 +704,65 @@ namespace Skrib
                 }
             }
             catch { }
+        }
+
+        // Opens the Store review page so users can rate the app (reviews are answered in Partner Center).
+        private async void RateButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                bool launched = await Launcher.LaunchUriAsync(new Uri("ms-windows-store://review/?productid=9p9tb8st018k"));
+                if (!launched)
+                {
+                    await Launcher.LaunchUriAsync(new Uri("https://apps.microsoft.com/detail/9p9tb8st018k"));
+                }
+            }
+            catch { }
+        }
+
+        // Collects feedback in-app, then opens a prefilled GitHub issue (no token or backend needed).
+        private async void FeedbackButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                bool isEn = _currentLang == "en";
+                var input = new TextBox
+                {
+                    AcceptsReturn = true,
+                    TextWrapping = TextWrapping.Wrap,
+                    MinHeight = 120,
+                    PlaceholderText = isEn ? "Describe your idea or issue..." : "Décrivez votre idée ou probléme..."
+                };
+                var dlg = new ContentDialog
+                {
+                    Title = isEn ? "Send feedback" : "Envoyer un commentaire",
+                    Content = input,
+                    PrimaryButtonText = isEn ? "Send" : "Envoyer",
+                    CloseButtonText = isEn ? "Cancel" : "Annuler",
+                    DefaultButton = ContentDialogButton.Primary,
+                    XamlRoot = this.Content.XamlRoot
+                };
+                if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+                string message = (input.Text ?? "").Trim();
+                if (message.Length == 0) return;
+                string version = GetVersionString();
+                string title = "[Feedback] Skrib " + version;
+                string body = message + "\n\n---\nSkrib " + version + " (" + _currentLang + ")";
+                string url = "https://github.com/Gtisseran/Skrib/issues/new?title=" + Uri.EscapeDataString(title)
+                    + "&body=" + Uri.EscapeDataString(body) + "&labels=feedback";
+                await Launcher.LaunchUriAsync(new Uri(url));
+            }
+            catch { }
+        }
+
+        private static string GetVersionString()
+        {
+            try
+            {
+                var v = Windows.ApplicationModel.Package.Current.Id.Version;
+                return v.Major + "." + v.Minor + "." + v.Build + "." + v.Revision;
+            }
+            catch { return "1.0.2.0"; }
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)

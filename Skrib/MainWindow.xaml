@@ -451,6 +451,26 @@
                             <TextBlock x:Name="StoreButtonText" Text="Vérifier les mises à jour" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                     </Button>
+
+                    <Button x:Name="RateButton"
+                            Click="RateButton_Click"
+                            HorizontalAlignment="Stretch"
+                            Padding="12,8">
+                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                            <FontIcon Glyph="&#xE734;" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock x:Name="RateButtonText" Text="Noter Skrib" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="FeedbackButton"
+                            Click="FeedbackButton_Click"
+                            HorizontalAlignment="Stretch"
+                            Padding="12,8">
+                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                            <FontIcon Glyph="&#xE8BD;" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock x:Name="FeedbackButtonText" Text="Envoyer un commentaire" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Button>
                     </StackPanel>
 
                 </Grid>
