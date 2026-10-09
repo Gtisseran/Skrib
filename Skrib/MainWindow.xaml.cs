@@ -741,6 +741,7 @@ namespace Skrib
                     CloseButtonText = isEn ? "Cancel" : "Annuler",
                     DefaultButton = ContentDialogButton.Primary,
                     MinWidth = 420,
+                    RequestedTheme = LoadTheme(),
                     XamlRoot = this.Content.XamlRoot
                 };
                 if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
@@ -831,6 +832,7 @@ namespace Skrib
                     Title = title,
                     Content = message,
                     CloseButtonText = "OK",
+                    RequestedTheme = LoadTheme(),
                     XamlRoot = this.Content.XamlRoot
                 };
                 await dlg.ShowAsync();
