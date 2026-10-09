@@ -234,6 +234,16 @@
                                     <AdaptiveTrigger MinWindowWidth="880" />
                                 </VisualState.StateTriggers>
                             </VisualState>
+                            <VisualState x:Name="SettingsMediumState">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="650" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters>
+                                    <Setter Target="AboutColumn.Width" Value="0" />
+                                    <Setter Target="SettingsAboutColumn.(Grid.Row)" Value="1" />
+                                    <Setter Target="SettingsAboutColumn.(Grid.Column)" Value="0" />
+                                </VisualState.Setters>
+                            </VisualState>
                             <VisualState x:Name="SettingsNarrowState">
                                 <VisualState.StateTriggers>
                                     <AdaptiveTrigger MinWindowWidth="0" />
@@ -242,6 +252,16 @@
                                     <Setter Target="AboutColumn.Width" Value="0" />
                                     <Setter Target="SettingsAboutColumn.(Grid.Row)" Value="1" />
                                     <Setter Target="SettingsAboutColumn.(Grid.Column)" Value="0" />
+                                    <Setter Target="ThemeComboBox.(Grid.Row)" Value="1" />
+                                    <Setter Target="ThemeComboBox.(Grid.Column)" Value="0" />
+                                    <Setter Target="ThemeComboBox.(Grid.ColumnSpan)" Value="3" />
+                                    <Setter Target="ThemeComboBox.Width" Value="Auto" />
+                                    <Setter Target="ThemeComboBox.HorizontalAlignment" Value="Stretch" />
+                                    <Setter Target="LangComboBox.(Grid.Row)" Value="1" />
+                                    <Setter Target="LangComboBox.(Grid.Column)" Value="0" />
+                                    <Setter Target="LangComboBox.(Grid.ColumnSpan)" Value="3" />
+                                    <Setter Target="LangComboBox.Width" Value="Auto" />
+                                    <Setter Target="LangComboBox.HorizontalAlignment" Value="Stretch" />
                                 </VisualState.Setters>
                             </VisualState>
                         </VisualStateGroup>
@@ -260,7 +280,11 @@
                                     MinHeight="76"
                                     Padding="16,12"
                                     HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16">
+                                <Grid ColumnSpacing="16" RowSpacing="12">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
@@ -313,7 +337,11 @@
                                     MinHeight="76"
                                     Padding="16,12"
                                     HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16">
+                                <Grid ColumnSpacing="16" RowSpacing="12">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
@@ -369,7 +397,11 @@
                                     MinHeight="76"
                                     Padding="16,12"
                                     HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16">
+                                <Grid ColumnSpacing="16" RowSpacing="12">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
@@ -415,7 +447,11 @@
                             MinHeight="76"
                             Padding="16,12"
                             HorizontalAlignment="Stretch">
-                        <Grid ColumnSpacing="16">
+                        <Grid ColumnSpacing="16" RowSpacing="12">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
