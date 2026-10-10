@@ -184,7 +184,7 @@ namespace Skrib
             }
             catch
             {
-                AboutDesc.Text = "Version 1.0.2.0";
+                AboutDesc.Text = "Version 1.0.3.0";
             }
         }
 
@@ -818,7 +818,7 @@ namespace Skrib
                 var v = Windows.ApplicationModel.Package.Current.Id.Version;
                 return v.Major + "." + v.Minor + "." + v.Build + "." + v.Revision;
             }
-            catch { return "1.0.2.0"; }
+            catch { return "1.0.3.0"; }
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)

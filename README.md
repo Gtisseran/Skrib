@@ -57,6 +57,6 @@ To debug with UI, hot reload and the designer, open `Skrib/Skrib.csproj` in Visu
 
 ## Versioning
 
-The public version lives in three places that must stay in sync: `Version` and `PackageVersion` in `Skrib/Skrib.csproj`, and `Version` in `Skrib/Package.appxmanifest`. Current version: `1.0.2.0`.
+The public version lives in three places that must stay in sync: `Version` and `PackageVersion` in `Skrib/Skrib.csproj`, and `Version` in `Skrib/Package.appxmanifest`. Current version: `1.0.3.0`.
 
 Signing uses a local-only developer certificate (`Skrib_TemporaryKey.pfx`), which is intentionally not committed. Store builds are signed by the Store pipeline.
