@@ -485,6 +485,49 @@
                                     </StackPanel>
                                 </Grid>
                             </Border>
+
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    MinHeight="76"
+                                    Padding="16,12"
+                                    HorizontalAlignment="Stretch">
+                                <Grid ColumnSpacing="16" RowSpacing="0" VerticalAlignment="Center">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
+                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                            VerticalAlignment="Center">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock x:Name="EditorBgTitle" Text="Fond de la zone de texte" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <TextBlock x:Name="EditorBgDesc" Text="Afficher l'arrière-plan de l'application derrière le texte" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                        <TextBlock x:Name="EditorBgStateText" Text="Désactivé" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Width="70" TextAlignment="Right" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <ToggleSwitch x:Name="EditorBgToggle"
+                                              IsOn="False"
+                                              Toggled="EditorBgToggle_Toggled"
+                                              VerticalAlignment="Center"
+                                              Margin="0,0,4,0"
+                                              MinWidth="0"
+                                              OnContent="" OffContent="" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
                         </StackPanel>
 
                     </StackPanel>

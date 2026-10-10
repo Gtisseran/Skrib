@@ -38,6 +38,7 @@ namespace Skrib
             ApplySavedBackdrop();
             ApplySavedLanguage();
             ApplySavedWordWrap();
+            ApplySavedEditorBg();
             UpdateAboutVersion();
             UpdateCaretInfo();
             UpdateWordWrapState();
@@ -407,6 +408,8 @@ namespace Skrib
                 SectionEditorTitle.Text = "Editor";
                 WordWrapTitle.Text = "Word wrap";
                 WordWrapDesc.Text = "Wrap long lines of text to fit the window width";
+                EditorBgTitle.Text = "Text area background";
+                EditorBgDesc.Text = "Show the app background behind the text";
 
                 SectionAboutTitle.Text = "About this app";
                 AboutTitle.Text = "Skrib";
@@ -462,6 +465,8 @@ namespace Skrib
                 SectionEditorTitle.Text = "Éditeur";
                 WordWrapTitle.Text = "Retour automatique à la ligne";
                 WordWrapDesc.Text = "Ajuster le texte pour qu'il tienne dans la largeur de la fenêtre";
+                EditorBgTitle.Text = "Fond de la zone de texte";
+                EditorBgDesc.Text = "Afficher l'arrière-plan de l'application derrière le texte";
 
                 SectionAboutTitle.Text = "À propos de cette application";
                 AboutTitle.Text = "Skrib";
@@ -475,6 +480,7 @@ namespace Skrib
             UpdateTitle();
             UpdateCaretInfo();
             UpdateWordWrapState();
+            UpdateEditorBgState();
         }
 
         #endregion
@@ -516,6 +522,52 @@ namespace Skrib
             catch { }
         }
 
+
+        // Transparent mode lets the window backdrop show through the text area.
+        private void ApplySavedEditorBg()
+        {
+            try
+            {
+                var v = ApplicationData.Current.LocalSettings.Values["EditorTransparent"];
+                if (v is bool on)
+                {
+                    EditorBgToggle.IsOn = on;
+                    ApplyEditorBg(on, save: false);
+                }
+            }
+            catch { }
+        }
+
+        private void EditorBgToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (!_isInitialized) return;
+            ApplyEditorBg(EditorBgToggle.IsOn);
+        }
+
+        private void ApplyEditorBg(bool transparent, bool save = true)
+        {
+            if (transparent)
+                Editor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            else
+                Editor.ClearValue(TextBox.BackgroundProperty);
+            if (save)
+            {
+                try { ApplicationData.Current.LocalSettings.Values["EditorTransparent"] = transparent; } catch { }
+            }
+            UpdateEditorBgState();
+        }
+
+        // Keeps the toggle state label in sync (fixed-width label so the toggle never shifts).
+        private void UpdateEditorBgState()
+        {
+            try
+            {
+                bool isOn = EditorBgToggle != null && EditorBgToggle.IsOn;
+                bool isEn = _currentLang == "en";
+                EditorBgStateText.Text = isOn ? (isEn ? "On" : "Activé") : (isEn ? "Off" : "Désactivé");
+            }
+            catch { }
+        }
         private void UpdateTitle()
         {
             var untitled = _currentLang == "en" ? "Untitled" : "Sans titre";
