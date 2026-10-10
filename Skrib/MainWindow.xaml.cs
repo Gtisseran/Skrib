@@ -416,7 +416,7 @@ namespace Skrib
                 LangHeaderTitle.Text = "Language";
                 LangHeaderDesc.Text = "Choose application display language";
                 LangFrComboText.Text = "French (FR)";
-                LangSystemComboText.Text = "Use system language";
+                LangSystemComboText.Text = "System";
                 LangEnComboText.Text = "English (EN)";
 
                 SectionEditorTitle.Text = "Editor";
@@ -474,7 +474,7 @@ namespace Skrib
                 LangHeaderTitle.Text = "Langue";
                 LangHeaderDesc.Text = "Choisissez la langue de l'application";
                 LangFrComboText.Text = "Français (FR)";
-                LangSystemComboText.Text = "Utiliser la langue du système";
+                LangSystemComboText.Text = "Système";
                 LangEnComboText.Text = "English (EN)";
 
                 SectionEditorTitle.Text = "Éditeur";
