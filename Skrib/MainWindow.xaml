@@ -9,9 +9,6 @@
     mc:Ignorable="d"
     Title="Skrib">
 
-    <Window.SystemBackdrop>
-        <MicaBackdrop />
-    </Window.SystemBackdrop>
 
     <Grid x:Name="RootGrid" KeyDown="RootGrid_KeyDown">
         <Grid.RowDefinitions>
@@ -266,6 +263,12 @@
                                     <Setter Target="LangComboBox.HorizontalAlignment" Value="Stretch" />
                                     <Setter Target="ThemeComboBox.Margin" Value="0,12,0,0" />
                                     <Setter Target="LangComboBox.Margin" Value="0,12,0,0" />
+                                    <Setter Target="BackdropComboBox.(Grid.Row)" Value="1" />
+                                    <Setter Target="BackdropComboBox.(Grid.Column)" Value="0" />
+                                    <Setter Target="BackdropComboBox.(Grid.ColumnSpan)" Value="3" />
+                                    <Setter Target="BackdropComboBox.Width" Value="Auto" />
+                                    <Setter Target="BackdropComboBox.HorizontalAlignment" Value="Stretch" />
+                                    <Setter Target="BackdropComboBox.Margin" Value="0,12,0,0" />
                                 </VisualState.Setters>
                             </VisualState>
                         </VisualStateGroup>
@@ -334,7 +337,53 @@
                                 </Grid>
                             </Border>
 
+                            
                             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    MinHeight="76"
+                                    Padding="16,12"
+                                    HorizontalAlignment="Stretch">
+                                <Grid ColumnSpacing="16" RowSpacing="0" VerticalAlignment="Center">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
+                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                            VerticalAlignment="Center">
+                                        <FontIcon Glyph="&#xE81E;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock x:Name="BackdropHeaderTitle" Text="Arrière-plan" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <TextBlock x:Name="BackdropHeaderDesc" Text="Choisissez l'arrière-plan affiché dans Skrib" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <ComboBox Grid.Column="2" x:Name="BackdropComboBox"
+                                              SelectionChanged="BackdropComboBox_SelectionChanged"
+                                              Width="240"
+                                              HorizontalAlignment="Right"
+                                              VerticalAlignment="Center">
+                                        <ComboBoxItem Tag="Mica">
+                                                <TextBlock x:Name="BackdropMicaComboText" Text="Mica" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        </ComboBoxItem>
+                                        <ComboBoxItem Tag="Acrylic">
+                                                <TextBlock x:Name="BackdropAcrylicComboText" Text="Acrylique" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        </ComboBoxItem>
+                                    </ComboBox>
+                                </Grid>
+                            </Border>
+
+<Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                     BorderThickness="1"
                                     CornerRadius="6"

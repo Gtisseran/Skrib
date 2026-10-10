@@ -35,6 +35,7 @@ namespace Skrib
             SetMinimumWindowSize();
             SetWindowIcon();
             ApplySavedTheme();
+            ApplySavedBackdrop();
             ApplySavedLanguage();
             ApplySavedWordWrap();
             UpdateAboutVersion();
@@ -274,6 +275,51 @@ namespace Skrib
 
         #endregion
 
+        #region Backdrop Management
+
+        private void ApplySavedBackdrop()
+        {
+            var backdrop = LoadBackdrop();
+            ApplyBackdrop(backdrop, save: false);
+            BackdropComboBox.SelectedIndex = (backdrop == "Acrylic") ? 1 : 0;
+        }
+
+        private static string LoadBackdrop()
+        {
+            try
+            {
+                var v = ApplicationData.Current.LocalSettings.Values["AppBackdrop"] as string;
+                if (v == "Acrylic") return "Acrylic";
+            }
+            catch { }
+            return "Mica";
+        }
+
+        // Switches the window backdrop at runtime (Mica default, like Windows Notepad).
+        private void ApplyBackdrop(string backdrop, bool save = true)
+        {
+            if (backdrop == "Acrylic")
+                SystemBackdrop = new Microsoft.UI.Xaml.Media.DesktopAcrylicBackdrop();
+            else
+                SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
+            if (save)
+            {
+                try { ApplicationData.Current.LocalSettings.Values["AppBackdrop"] = backdrop; } catch { }
+            }
+        }
+
+        private void BackdropComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_isInitialized) return;
+            if (BackdropComboBox.SelectedItem is ComboBoxItem item &&
+                item.Tag is string backdrop)
+            {
+                ApplyBackdrop(backdrop);
+            }
+        }
+
+        #endregion
+
         #region Language Management
 
         private void ApplySavedLanguage()
@@ -348,6 +394,10 @@ namespace Skrib
                 ThemeLightComboText.Text = "Light";
                 ThemeDarkComboText.Text = "Dark";
                 ThemeSystemComboText.Text = "Use system theme";
+                BackdropHeaderTitle.Text = "Background";
+                BackdropHeaderDesc.Text = "Choose the background shown in Skrib";
+                BackdropMicaComboText.Text = "Mica";
+                BackdropAcrylicComboText.Text = "Acrylic";
 
                 LangHeaderTitle.Text = "Language";
                 LangHeaderDesc.Text = "Choose application display language";
@@ -399,6 +449,10 @@ namespace Skrib
                 ThemeLightComboText.Text = "Clair";
                 ThemeDarkComboText.Text = "Sombre";
                 ThemeSystemComboText.Text = "Utiliser le thème du système";
+                BackdropHeaderTitle.Text = "Arrière-plan";
+                BackdropHeaderDesc.Text = "Choisissez l'arrière-plan affiché dans Skrib";
+                BackdropMicaComboText.Text = "Mica";
+                BackdropAcrylicComboText.Text = "Acrylique";
 
                 LangHeaderTitle.Text = "Langue";
                 LangHeaderDesc.Text = "Choisissez la langue de l'application";
