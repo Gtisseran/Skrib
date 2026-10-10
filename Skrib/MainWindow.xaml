@@ -217,7 +217,7 @@
 
             <!-- Content: responsive (side-by-side when wide, stacked when narrow) -->
             <ScrollViewer Grid.Row="1" Padding="20,0,20,24" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <Grid x:Name="SettingsContentGrid" ColumnSpacing="24" RowSpacing="24">
+                <Grid x:Name="SettingsContentGrid" ColumnSpacing="24" RowSpacing="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition x:Name="AboutColumn" Width="300" />
@@ -242,6 +242,7 @@
                                     <Setter Target="AboutColumn.Width" Value="0" />
                                     <Setter Target="SettingsAboutColumn.(Grid.Row)" Value="1" />
                                     <Setter Target="SettingsAboutColumn.(Grid.Column)" Value="0" />
+                                    <Setter Target="SettingsContentGrid.RowSpacing" Value="24" />
                                 </VisualState.Setters>
                             </VisualState>
                             <VisualState x:Name="SettingsNarrowState">
@@ -252,6 +253,7 @@
                                     <Setter Target="AboutColumn.Width" Value="0" />
                                     <Setter Target="SettingsAboutColumn.(Grid.Row)" Value="1" />
                                     <Setter Target="SettingsAboutColumn.(Grid.Column)" Value="0" />
+                                    <Setter Target="SettingsContentGrid.RowSpacing" Value="24" />
                                     <Setter Target="ThemeComboBox.(Grid.Row)" Value="1" />
                                     <Setter Target="ThemeComboBox.(Grid.Column)" Value="0" />
                                     <Setter Target="ThemeComboBox.(Grid.ColumnSpan)" Value="3" />
@@ -262,6 +264,8 @@
                                     <Setter Target="LangComboBox.(Grid.ColumnSpan)" Value="3" />
                                     <Setter Target="LangComboBox.Width" Value="Auto" />
                                     <Setter Target="LangComboBox.HorizontalAlignment" Value="Stretch" />
+                                    <Setter Target="ThemeComboBox.Margin" Value="0,12,0,0" />
+                                    <Setter Target="LangComboBox.Margin" Value="0,12,0,0" />
                                 </VisualState.Setters>
                             </VisualState>
                         </VisualStateGroup>
@@ -280,7 +284,7 @@
                                     MinHeight="76"
                                     Padding="16,12"
                                     HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16" RowSpacing="12" VerticalAlignment="Center">
+                                <Grid ColumnSpacing="16" RowSpacing="0" VerticalAlignment="Center">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
@@ -337,7 +341,7 @@
                                     MinHeight="76"
                                     Padding="16,12"
                                     HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16" RowSpacing="12" VerticalAlignment="Center">
+                                <Grid ColumnSpacing="16" RowSpacing="0" VerticalAlignment="Center">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
@@ -397,7 +401,7 @@
                                     MinHeight="76"
                                     Padding="16,12"
                                     HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16" RowSpacing="12" VerticalAlignment="Center">
+                                <Grid ColumnSpacing="16" RowSpacing="0" VerticalAlignment="Center">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
@@ -447,7 +451,7 @@
                             MinHeight="76"
                             Padding="16,12"
                             HorizontalAlignment="Stretch">
-                        <Grid ColumnSpacing="16" RowSpacing="12" VerticalAlignment="Center">
+                        <Grid ColumnSpacing="16" RowSpacing="0" VerticalAlignment="Center">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
