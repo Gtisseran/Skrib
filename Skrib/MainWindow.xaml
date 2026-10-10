@@ -280,7 +280,7 @@
                                     MinHeight="76"
                                     Padding="16,12"
                                     HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16" RowSpacing="12">
+                                <Grid ColumnSpacing="16" RowSpacing="12" VerticalAlignment="Center">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
@@ -337,7 +337,7 @@
                                     MinHeight="76"
                                     Padding="16,12"
                                     HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16" RowSpacing="12">
+                                <Grid ColumnSpacing="16" RowSpacing="12" VerticalAlignment="Center">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
@@ -397,7 +397,7 @@
                                     MinHeight="76"
                                     Padding="16,12"
                                     HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16" RowSpacing="12">
+                                <Grid ColumnSpacing="16" RowSpacing="12" VerticalAlignment="Center">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
@@ -447,7 +447,7 @@
                             MinHeight="76"
                             Padding="16,12"
                             HorizontalAlignment="Stretch">
-                        <Grid ColumnSpacing="16" RowSpacing="12">
+                        <Grid ColumnSpacing="16" RowSpacing="12" VerticalAlignment="Center">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
