@@ -325,9 +325,9 @@ namespace Skrib
 
         private void ApplySavedLanguage()
         {
-            var lang = LoadLanguage();
-            ApplyLanguage(lang, save: false);
-            LangComboBox.SelectedIndex = (lang == "en") ? 1 : 0;
+            var mode = LoadLanguage();
+            ApplyLanguage(mode, save: false);
+            LangComboBox.SelectedIndex = (mode == "en") ? 1 : ((mode == "System") ? 2 : 0);
         }
 
         private static string LoadLanguage()
@@ -338,7 +338,7 @@ namespace Skrib
                 if (!string.IsNullOrEmpty(lang)) return lang;
             }
             catch { }
-            return "fr";
+            return "System";
         }
 
         private void LangComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -351,12 +351,25 @@ namespace Skrib
             }
         }
 
+        // Resolves the OS UI language; falls back to English when unsupported.
+        private static string ResolveSystemLanguage()
+        {
+            try
+            {
+                string tag = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+                if (tag.StartsWith("fr")) return "fr";
+            }
+            catch { }
+            return "en";
+        }
+
         private void ApplyLanguage(string lang, bool save = true)
         {
-            _currentLang = (lang == "en") ? "en" : "fr";
+            string mode = (lang == "System") ? "System" : ((lang == "en") ? "en" : "fr");
+            _currentLang = (mode == "System") ? ResolveSystemLanguage() : mode;
             if (save)
             {
-                try { ApplicationData.Current.LocalSettings.Values["AppLanguage"] = _currentLang; } catch { }
+                try { ApplicationData.Current.LocalSettings.Values["AppLanguage"] = mode; } catch { }
             }
 
             bool isEn = _currentLang == "en";
@@ -403,6 +416,7 @@ namespace Skrib
                 LangHeaderTitle.Text = "Language";
                 LangHeaderDesc.Text = "Choose application display language";
                 LangFrComboText.Text = "French (FR)";
+                LangSystemComboText.Text = "Use system language";
                 LangEnComboText.Text = "English (EN)";
 
                 SectionEditorTitle.Text = "Editor";
@@ -460,6 +474,7 @@ namespace Skrib
                 LangHeaderTitle.Text = "Langue";
                 LangHeaderDesc.Text = "Choisissez la langue de l'application";
                 LangFrComboText.Text = "Français (FR)";
+                LangSystemComboText.Text = "Utiliser la langue du système";
                 LangEnComboText.Text = "English (EN)";
 
                 SectionEditorTitle.Text = "Éditeur";
@@ -546,10 +561,23 @@ namespace Skrib
 
         private void ApplyEditorBg(bool transparent, bool save = true)
         {
+            var bg = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
             if (transparent)
-                Editor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            {
+                Editor.Background = bg;
+                Editor.Resources["TextControlBackground"] = bg;
+                Editor.Resources["TextControlBackgroundPointerOver"] = bg;
+                Editor.Resources["TextControlBackgroundFocused"] = bg;
+                Editor.Resources["TextControlBackgroundDisabled"] = bg;
+            }
             else
+            {
                 Editor.ClearValue(TextBox.BackgroundProperty);
+                Editor.Resources.Remove("TextControlBackground");
+                Editor.Resources.Remove("TextControlBackgroundPointerOver");
+                Editor.Resources.Remove("TextControlBackgroundFocused");
+                Editor.Resources.Remove("TextControlBackgroundDisabled");
+            }
             if (save)
             {
                 try { ApplicationData.Current.LocalSettings.Values["EditorTransparent"] = transparent; } catch { }

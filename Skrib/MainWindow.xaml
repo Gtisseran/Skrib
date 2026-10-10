@@ -434,6 +434,12 @@
                                                 <TextBlock x:Name="LangEnComboText" Text="English (EN)" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                             </StackPanel>
                                         </ComboBoxItem>
+                                            <ComboBoxItem Tag="System">
+                                                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                                    <FontIcon Glyph="&#xE774;" FontSize="16" VerticalAlignment="Center" />
+                                                    <TextBlock x:Name="LangSystemComboText" Text="Utiliser la langue du système" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                                </StackPanel>
+                                            </ComboBoxItem>
                                     </ComboBox>
                                 </Grid>
                             </Border>
