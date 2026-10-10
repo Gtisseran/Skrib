@@ -746,7 +746,7 @@ namespace Skrib
                 };
                 if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
                 string message = (input.Text ?? "").Trim();
-                if (message.Length == 0) return;
+                if (string.IsNullOrEmpty(message)) return;
                 string version = GetVersionString();
                 string title = "[Feedback] Skrib " + version;
                 string body = message + "\n\n---\nSkrib " + version + " (" + _currentLang + ")";
