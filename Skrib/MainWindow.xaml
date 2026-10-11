@@ -609,7 +609,7 @@
                                 Padding="8,10">
                             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                                 <FontIcon Glyph="&#xE734;" FontSize="14" VerticalAlignment="Center" />
-                                <TextBlock x:Name="RateButtonText" Text="Évaluer l'application" FontSize="12" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="RateButtonText" Text="Noter" FontSize="12" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                         </Button>
 
@@ -619,7 +619,7 @@
                                 Padding="8,10">
                             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                                 <FontIcon Glyph="&#xE8BD;" FontSize="14" VerticalAlignment="Center" />
-                                <TextBlock x:Name="FeedbackButtonText" Text="Envoyer un commentaire" FontSize="12" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="FeedbackButtonText" Text="Avis" FontSize="12" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                         </Button>
                     </Grid>

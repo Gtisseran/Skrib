@@ -487,8 +487,8 @@ namespace Skrib
                 AboutTitle.Text = "Skrib";
                 GitHubButtonText.Text = "GitHub";
                 StoreButtonText.Text = "Mises à jour";
-                RateButtonText.Text = "Évaluer l'application";
-                FeedbackButtonText.Text = "Envoyer un commentaire";
+                RateButtonText.Text = "Noter";
+                FeedbackButtonText.Text = "Avis";
             }
 
             UpdateAboutVersion();
