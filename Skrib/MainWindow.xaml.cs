@@ -479,7 +479,7 @@ namespace Skrib
 
                 SectionEditorTitle.Text = "Éditeur";
                 WordWrapTitle.Text = "Retour automatique à la ligne";
-                WordWrapDesc.Text = "Ajuster le texte pour qu'il tienne dans la largeur de la fenêtre";
+                WordWrapDesc.Text = "Renvoyer automatiquement le texte à la ligne";
                 EditorBgTitle.Text = "Fond de la zone de texte";
                 EditorBgDesc.Text = "Afficher l'arrière-plan de l'application derrière le texte";
 
@@ -487,8 +487,8 @@ namespace Skrib
                 AboutTitle.Text = "Skrib";
                 GitHubButtonText.Text = "GitHub";
                 StoreButtonText.Text = "Mises à jour";
-                RateButtonText.Text = "Noter";
-                FeedbackButtonText.Text = "Commentaire";
+                RateButtonText.Text = "Évaluer l'application";
+                FeedbackButtonText.Text = "Envoyer un commentaire";
             }
 
             UpdateAboutVersion();
@@ -730,18 +730,18 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                await ShowErrorAsync(_currentLang == "en" ? "Open error" : "Erreur ouverture", ex.Message);
+                await ShowErrorAsync(_currentLang == "en" ? "Open error" : "Erreur lors de l'ouverture", ex.Message);
             }
         }
 
         private async void SaveFile_Click(object sender, RoutedEventArgs e)
         {
-            try { await SaveAsync(); } catch (Exception ex) { await ShowErrorAsync(_currentLang == "en" ? "Save error" : "Erreur sauvegarde", ex.Message); }
+            try { await SaveAsync(); } catch (Exception ex) { await ShowErrorAsync(_currentLang == "en" ? "Save error" : "Erreur lors de l'enregistrement", ex.Message); }
         }
 
         private async void SaveAsFile_Click(object sender, RoutedEventArgs e)
         {
-            try { await SaveAsAsync(); } catch (Exception ex) { await ShowErrorAsync(_currentLang == "en" ? "Save error" : "Erreur sauvegarde", ex.Message); }
+            try { await SaveAsAsync(); } catch (Exception ex) { await ShowErrorAsync(_currentLang == "en" ? "Save error" : "Erreur lors de l'enregistrement", ex.Message); }
         }
 
         private async Task<bool> SaveAsync()
@@ -865,7 +865,7 @@ namespace Skrib
                     AcceptsReturn = true,
                     TextWrapping = TextWrapping.Wrap,
                     MinHeight = 180,
-                    PlaceholderText = isEn ? "Describe your idea or issue..." : "Décrivez votre idée ou probléme..."
+                    PlaceholderText = isEn ? "Describe your idea or issue..." : "Décrivez votre idée ou problème..."
                 };
                 var dlg = new ContentDialog
                 {

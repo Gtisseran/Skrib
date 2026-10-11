@@ -476,7 +476,7 @@
 
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                                         <TextBlock x:Name="WordWrapTitle" Text="Retour automatique à la ligne" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                        <TextBlock x:Name="WordWrapDesc" Text="Ajuster le texte pour qu'il tienne dans la largeur de la fenêtre" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                        <TextBlock x:Name="WordWrapDesc" Text="Renvoyer automatiquement le texte à la ligne" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Right">
@@ -609,7 +609,7 @@
                                 Padding="8,10">
                             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                                 <FontIcon Glyph="&#xE734;" FontSize="14" VerticalAlignment="Center" />
-                                <TextBlock x:Name="RateButtonText" Text="Noter" FontSize="12" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="RateButtonText" Text="Évaluer l'application" FontSize="12" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                         </Button>
 
@@ -619,7 +619,7 @@
                                 Padding="8,10">
                             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                                 <FontIcon Glyph="&#xE8BD;" FontSize="14" VerticalAlignment="Center" />
-                                <TextBlock x:Name="FeedbackButtonText" Text="Commentaire" FontSize="12" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="FeedbackButtonText" Text="Envoyer un commentaire" FontSize="12" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                         </Button>
                     </Grid>
