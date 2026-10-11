@@ -192,7 +192,25 @@
 
             <Border x:Name="MarkdownPreviewHost" Grid.Row="1" Visibility="Collapsed" Background="Transparent">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24,12,24,32">
-                    <controls:MarkdownTextBlock x:Name="MarkdownPreview" MaxWidth="860" HorizontalAlignment="Center" IsTextSelectionEnabled="True" LinkClicked="MarkdownPreview_LinkClicked" />
+                    <controls:MarkdownTextBlock x:Name="MarkdownPreview"
+                        MaxWidth="860" HorizontalAlignment="Center"
+                        FontSize="15" Background="Transparent" TextWrapping="Wrap"
+                        IsTextSelectionEnabled="True" UseSyntaxHighlighting="True" WrapCodeBlock="True"
+                        LinkClicked="MarkdownPreview_LinkClicked" LinkForeground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                        Header1FontSize="28" Header1FontWeight="SemiBold" Header1Margin="0,20,0,8"
+                        Header2FontSize="22" Header2FontWeight="SemiBold" Header2Margin="0,18,0,6"
+                        Header3FontSize="18" Header3FontWeight="SemiBold" Header3Margin="0,16,0,4"
+                        Header4FontSize="16" Header4FontWeight="SemiBold" Header4Margin="0,12,0,4"
+                        Header5FontSize="14" Header5FontWeight="SemiBold" Header5Margin="0,8,0,4"
+                        Header6FontSize="14" Header6FontWeight="SemiBold" Header6Margin="0,8,0,4"
+                        ParagraphMargin="0,0,0,10" ParagraphLineHeight="22"
+                        ListMargin="0,0,0,10" ListGutterWidth="28" ListBulletSpacing="8"
+                        QuoteBackground="{ThemeResource SubtleFillColorSecondaryBrush}" QuoteBorderBrush="{ThemeResource AccentFillColorDefaultBrush}" QuoteBorderThickness="3,0,0,0" QuoteForeground="{ThemeResource TextFillColorSecondaryBrush}" QuoteMargin="0,0,0,10" QuotePadding="10,6,10,6"
+                        CodeFontFamily="Consolas" CodeBackground="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CodeBorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" CodeBorderThickness="1" CodeMargin="0,0,0,12" CodePadding="12"
+                        InlineCodeFontFamily="Consolas" InlineCodeBackground="{ThemeResource SubtleFillColorSecondaryBrush}" InlineCodeBorderThickness="0" InlineCodeMargin="0" InlineCodePadding="4,1,4,2"
+                        TableBorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" TableBorderThickness="1" TableCellPadding="8,6" TableMargin="0,0,0,12"
+                        HorizontalRuleBrush="{ThemeResource DividerStrokeColorDefaultBrush}" HorizontalRuleThickness="1" HorizontalRuleMargin="16,16,16,16"
+                        ImageMaxWidth="760" />
                 </ScrollViewer>
             </Border>
 
