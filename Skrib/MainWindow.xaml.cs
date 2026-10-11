@@ -613,7 +613,9 @@ namespace Skrib
             else
             {
                 Editor.ClearValue(TextBox.BackgroundProperty);
-                MarkdownPreviewHost.ClearValue(Border.BackgroundProperty);
+                // Restore the opaque theme brush explicitly: ClearValue would wipe the XAML ThemeResource.
+                if (Application.Current.Resources.TryGetValue("TextControlBackground", out var opaque) && opaque is Microsoft.UI.Xaml.Media.Brush opaqueBg)
+                    MarkdownPreviewHost.Background = opaqueBg;
                 foreach (var key in keys)
                 {
                     Editor.Resources.Remove(key);
