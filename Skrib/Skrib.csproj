@@ -39,8 +39,20 @@
     <ProjectCapability Include="Msix" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.WinUI.UI.Controls.Markdown" Version="7.1.2" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+  </ItemGroup>
+
+  <!-- Keep the Markdown renderer intact when trimming Release builds. -->
+  <ItemGroup>
+    <TrimmerRootAssembly Include="CommunityToolkit.WinUI.UI.Controls.Markdown" />
+    <TrimmerRootAssembly Include="CommunityToolkit.WinUI.UI.Controls.Core" />
+    <TrimmerRootAssembly Include="CommunityToolkit.WinUI.UI.Controls.Primitives" />
+    <TrimmerRootAssembly Include="CommunityToolkit.WinUI.UI" />
+    <TrimmerRootAssembly Include="CommunityToolkit.Common" />
+    <TrimmerRootAssembly Include="ColorCode.WinUI" />
+    <TrimmerRootAssembly Include="ColorCode.Core" />
   </ItemGroup>
 
   <!--

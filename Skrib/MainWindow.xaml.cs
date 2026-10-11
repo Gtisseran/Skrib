@@ -1,5 +1,6 @@
 ﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Windowing;
 using System;
@@ -26,6 +27,7 @@ namespace Skrib
         private static readonly HttpClient FeedbackHttpClient = new();
         private StorageFile? _currentFile;
         private bool _isDirty;
+        private bool _showMarkdownPreview;
         private string _currentLang = "fr";
         private bool _isInitialized = false;
         private bool _suppressDirty;
@@ -400,6 +402,9 @@ namespace Skrib
                 MenuCopy.Text = "Copy";
                 MenuPaste.Text = "Paste";
                 MenuSelectAll.Text = "Select All";
+                MenuView.Title = "View";
+                MenuPreview.Text = "Markdown preview";
+                ToolTipService.SetToolTip(PreviewToggleButton, "Markdown preview");
 
                 if (_contextUndo != null) _contextUndo.Text = "Undo";
                 if (_contextRedo != null) _contextRedo.Text = "Redo";
@@ -458,6 +463,9 @@ namespace Skrib
                 MenuCopy.Text = "Copier";
                 MenuPaste.Text = "Coller";
                 MenuSelectAll.Text = "Tout sélectionner";
+                MenuView.Title = "Affichage";
+                MenuPreview.Text = "Aperçu Markdown";
+                ToolTipService.SetToolTip(PreviewToggleButton, "Aperçu Markdown");
 
                 if (_contextUndo != null) _contextUndo.Text = "Annuler";
                 if (_contextRedo != null) _contextRedo.Text = "Rétablir";
@@ -506,6 +514,7 @@ namespace Skrib
             UpdateCaretInfo();
             UpdateWordWrapState();
             UpdateEditorBgState();
+            UpdateMarkdownViewState();
         }
 
         #endregion
@@ -630,6 +639,7 @@ namespace Skrib
             {
                 StatusText.Text = _currentFile != null ? _currentFile.Name : ready;
             }
+            UpdateMarkdownViewState();
         }
 
         // Sets editor text without flagging the document as dirty.
@@ -645,6 +655,11 @@ namespace Skrib
                 _suppressDirty = false;
             }
             _isDirty = false;
+            if (_showMarkdownPreview)
+            {
+                if (IsMarkdownFile()) MarkdownPreview.Text = text;
+                else SetMarkdownPreview(false);
+            }
             UpdateTitle();
             UpdateCaretInfo();
         }
@@ -696,7 +711,10 @@ namespace Skrib
                 int col = pos - lastBreak;
                 bool isEn = _currentLang == "en";
                 string countLabel = isEn ? "chars" : "caractères";
-                CaretInfoText.Text = $"Ln {line}, Col {col} | {text.Length} {countLabel}";
+                if (_showMarkdownPreview)
+                    CaretInfoText.Text = (isEn ? "Preview | " : "Aperçu | ") + text.Length + " " + countLabel;
+                else
+                    CaretInfoText.Text = $"Ln {line}, Col {col} | {text.Length} {countLabel}";
             }
             catch { }
         }
@@ -1066,6 +1084,82 @@ namespace Skrib
             }
             catch { }
         }
+
+        #region Markdown Preview
+
+        // The preview is only available for Markdown files; other files always use the editor.
+        private bool IsMarkdownFile()
+        {
+            try
+            {
+                if (_currentFile == null) return false;
+                if (!string.IsNullOrEmpty(_currentFile.FileType))
+                    return string.Equals(_currentFile.FileType, ".md", StringComparison.OrdinalIgnoreCase);
+                return _currentFile.Name.EndsWith(".md", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        }
+
+        // Syncs the View menu, the header toggle and the editor/preview visibility.
+        private void UpdateMarkdownViewState()
+        {
+            try
+            {
+                bool isMd = IsMarkdownFile();
+                if (MenuPreview != null) MenuPreview.IsEnabled = isMd;
+                if (PreviewToggleButton != null)
+                    PreviewToggleButton.Visibility = isMd ? Visibility.Visible : Visibility.Collapsed;
+                if (!isMd && _showMarkdownPreview)
+                    SetMarkdownPreview(false);
+                else if (MenuPreview != null)
+                    MenuPreview.IsChecked = _showMarkdownPreview;
+            }
+            catch { }
+        }
+
+        private void SetMarkdownPreview(bool show)
+        {
+            if (show && !IsMarkdownFile()) return;
+            _showMarkdownPreview = show;
+            try
+            {
+                if (show) MarkdownPreview.Text = Editor.Text ?? string.Empty;
+                Editor.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
+                MarkdownPreviewHost.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+                if (MenuPreview != null) MenuPreview.IsChecked = show;
+                if (PreviewToggleButton != null) PreviewToggleButton.IsChecked = show;
+                // The edit menu targets the hidden editor, so disable it while previewing.
+                if (MenuEdit != null) MenuEdit.IsEnabled = !show;
+            }
+            catch { }
+            UpdateCaretInfo();
+        }
+
+        private void MenuPreview_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is ToggleMenuFlyoutItem item) SetMarkdownPreview(item.IsChecked);
+        }
+
+        private void PreviewToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is ToggleButton button) SetMarkdownPreview(button.IsChecked == true);
+        }
+
+        // Opens rendered Markdown links in the default browser.
+        private async void MarkdownPreview_LinkClicked(object sender, CommunityToolkit.WinUI.UI.Controls.LinkClickedEventArgs e)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(e.Link)
+                    && Uri.TryCreate(e.Link, UriKind.Absolute, out var uri))
+                {
+                    await Launcher.LaunchUriAsync(uri);
+                }
+            }
+            catch { }
+        }
+
+        #endregion
 
         public async Task OpenFileFromStorageFileAsync(StorageFile file)
         {
