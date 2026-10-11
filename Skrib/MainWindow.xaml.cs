@@ -4,6 +4,10 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Windowing;
 using System;
 using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.Storage.Pickers;
@@ -14,6 +18,12 @@ namespace Skrib
 {
     public sealed partial class MainWindow : Window
     {
+        // Supabase credentials live in Config/supabase.json (local-only, gitignored) - never in source.
+        // The database policy must allow INSERT only; never put a service-role key in the app.
+        private static string? _supabaseUrl;
+        private static string? _supabaseKey;
+        private static bool _supabaseLoaded;
+        private static readonly HttpClient FeedbackHttpClient = new();
         private StorageFile? _currentFile;
         private bool _isDirty;
         private string _currentLang = "fr";
@@ -854,41 +864,124 @@ namespace Skrib
             catch { }
         }
 
-        // Collects feedback in-app, then opens a prefilled GitHub issue (no token or backend needed).
+        // Loads the local Supabase config once; a missing file means -not configured-.
+        private static void LoadSupabaseConfig()
+        {
+            if (_supabaseLoaded) return;
+            _supabaseLoaded = true;
+            try
+            {
+                string dir;
+                try { dir = Windows.ApplicationModel.Package.Current.InstalledLocation.Path; }
+                catch { dir = AppContext.BaseDirectory; }
+                string path = Path.Combine(dir, "Config", "supabase.json");
+                if (!File.Exists(path)) return;
+                using var doc = JsonDocument.Parse(File.ReadAllText(path));
+                if (doc.RootElement.TryGetProperty("url", out var u)) _supabaseUrl = u.GetString();
+                if (doc.RootElement.TryGetProperty("key", out var k)) _supabaseKey = k.GetString();
+            }
+            catch { }
+        }
+
+        // Sends feedback directly to Supabase; the database policy limits the public client to inserts.
         private async void FeedbackButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 bool isEn = _currentLang == "en";
-                var input = new TextBox
+                var nameInput = new TextBox
+                {
+                    PlaceholderText = isEn ? "Name (optional)" : "Nom (facultatif)"
+                };
+                var messageInput = new TextBox
                 {
                     AcceptsReturn = true,
                     TextWrapping = TextWrapping.Wrap,
-                    MinHeight = 180,
-                    PlaceholderText = isEn ? "Describe your idea or issue..." : "Décrivez votre idée ou problème..."
+                    MinHeight = 140,
+                    MaxLength = 5000,
+                    PlaceholderText = isEn ? "Write your feedback..." : "Écrivez votre commentaire..."
                 };
+                var content = new StackPanel { Spacing = 10 };
+                content.Children.Add(nameInput);
+                content.Children.Add(messageInput);
                 var dlg = new ContentDialog
                 {
-                    Title = isEn ? "Send feedback" : "Envoyer un commentaire",
-                    Content = input,
+                    Title = isEn ? "Feedback" : "Avis",
+                    Content = content,
                     PrimaryButtonText = isEn ? "Send" : "Envoyer",
                     CloseButtonText = isEn ? "Cancel" : "Annuler",
                     DefaultButton = ContentDialogButton.Primary,
-                    MinWidth = 420,
+                    MinWidth = 360,
                     RequestedTheme = LoadTheme(),
                     XamlRoot = this.Content.XamlRoot
                 };
                 if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
-                string message = (input.Text ?? "").Trim();
-                if (string.IsNullOrEmpty(message)) return;
-                string version = GetVersionString();
-                string title = "[Feedback] Skrib " + version;
-                string body = message + "\n\n---\nSkrib " + version + " (" + _currentLang + ")";
-                string url = "https://github.com/Gtisseran/Skrib/issues/new?title=" + Uri.EscapeDataString(title)
-                    + "&body=" + Uri.EscapeDataString(body) + "&labels=feedback";
-                await Launcher.LaunchUriAsync(new Uri(url));
+
+                string message = (messageInput.Text ?? "").Trim();
+                string name = (nameInput.Text ?? "").Trim();
+                if (string.IsNullOrWhiteSpace(message))
+                {
+                    await ShowInfoAsync(isEn ? "Feedback required" : "Avis requis",
+                        isEn ? "Please write a message before sending." : "Écrivez un commentaire avant de l’envoyer.");
+                    return;
+                }
+                LoadSupabaseConfig();
+                if (string.IsNullOrWhiteSpace(_supabaseUrl) || string.IsNullOrWhiteSpace(_supabaseKey))
+                {
+                    await ShowErrorAsync(isEn ? "Feedback is not configured" : "Envoi des avis non configuré",
+                        isEn ? "Set the Supabase project URL and publishable key in the app configuration." : "Renseignez l’URL du projet Supabase et sa clé publishable dans la configuration de l’application.");
+                    return;
+                }
+
+                // JsonObject DOM serialization is trim-safe, unlike reflection-based POCO serialization.
+                var payload = new System.Text.Json.Nodes.JsonObject
+                {
+                    ["message"] = message,
+                    ["app_version"] = GetVersionString(),
+                    ["language"] = _currentLang
+                };
+                if (string.IsNullOrWhiteSpace(name)) payload["name"] = null;
+                else payload["name"] = name;
+                using var request = new HttpRequestMessage(HttpMethod.Post,
+                    $"{_supabaseUrl!.TrimEnd('/')}/rest/v1/feedback");
+                request.Headers.Add("apikey", _supabaseKey);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _supabaseKey);
+                request.Headers.Add("Prefer", "return=minimal");
+                request.Content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
+
+                using var response = await FeedbackHttpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    await ShowErrorAsync(isEn ? "Unable to send feedback" : "Impossible d’envoyer l’avis",
+                        isEn ? $"The server returned {(int)response.StatusCode}. Please try again later." : $"Le serveur a répondu {((int)response.StatusCode)}. Réessayez plus tard.");
+                    return;
+                }
+
+                await ShowInfoAsync(isEn ? "Thank you" : "Merci",
+                    isEn ? "Your feedback has been sent." : "Votre avis a bien été envoyé.");
             }
-            catch { }
+            catch (HttpRequestException)
+            {
+                await ShowErrorAsync(_currentLang == "en" ? "Connection error" : "Erreur de connexion",
+                    _currentLang == "en" ? "Check your internet connection and try again." : "Vérifiez votre connexion Internet puis réessayez.");
+            }
+            catch (Exception ex)
+            {
+                await ShowErrorAsync(_currentLang == "en" ? "Unable to send feedback" : "Impossible d’envoyer l’avis", ex.Message);
+            }
+        }
+
+        private async Task ShowInfoAsync(string title, string message)
+        {
+            var dlg = new ContentDialog
+            {
+                Title = title,
+                Content = message,
+                CloseButtonText = "OK",
+                RequestedTheme = LoadTheme(),
+                XamlRoot = this.Content.XamlRoot
+            };
+            await dlg.ShowAsync();
         }
 
         private static string GetVersionString()

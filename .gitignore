@@ -1,4 +1,4 @@
-## Visual Studio / .NET
+﻿## Visual Studio / .NET
 .vs/
 bin/
 obj/
@@ -43,3 +43,6 @@ TestResults/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Local-only app config (Supabase URL/key - never commit)
+Skrib/Config/supabase.json
