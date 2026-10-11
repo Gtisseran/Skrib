@@ -602,6 +602,7 @@ namespace Skrib
             if (transparent)
             {
                 Editor.Background = bg;
+                MarkdownPreviewHost.Background = bg;
                 foreach (var key in keys)
                 {
                     Editor.Resources[key] = bg;
@@ -612,6 +613,7 @@ namespace Skrib
             else
             {
                 Editor.ClearValue(TextBox.BackgroundProperty);
+                MarkdownPreviewHost.ClearValue(Border.BackgroundProperty);
                 foreach (var key in keys)
                 {
                     Editor.Resources.Remove(key);
@@ -623,6 +625,10 @@ namespace Skrib
             {
                 try { ApplicationData.Current.LocalSettings.Values["EditorTransparent"] = transparent; } catch { }
             }
+            // Force ThemeResource re-resolution so the overridden brushes apply immediately.
+            var currentTheme = Editor.RequestedTheme;
+            Editor.RequestedTheme = currentTheme == ElementTheme.Dark ? ElementTheme.Light : ElementTheme.Dark;
+            Editor.RequestedTheme = currentTheme;
             UpdateEditorBgState();
         }
 

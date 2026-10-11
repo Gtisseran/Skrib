@@ -190,7 +190,7 @@
                 </TextBox.Resources>
             </TextBox>
 
-            <Border x:Name="MarkdownPreviewHost" Grid.Row="1" Visibility="Collapsed" Background="Transparent">
+            <Border x:Name="MarkdownPreviewHost" Grid.Row="1" Visibility="Collapsed" Background="{ThemeResource TextControlBackground}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24,12,24,32">
                     <controls:MarkdownTextBlock x:Name="MarkdownPreview"
                         MaxWidth="860" HorizontalAlignment="Center"
