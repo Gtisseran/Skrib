@@ -28,6 +28,7 @@ namespace Skrib
         private StorageFile? _currentFile;
         private bool _isDirty;
         private bool _showMarkdownPreview;
+        private readonly System.Collections.Generic.Dictionary<string, Microsoft.UI.Xaml.Media.Brush?> _origEditorBgBrushes = new();
         private string _currentLang = "fr";
         private bool _isInitialized = false;
         private bool _suppressDirty;
@@ -62,9 +63,14 @@ namespace Skrib
             try
             {
                 this.ExtendsContentIntoTitleBar = true;
-                if (this.Content is FrameworkElement root && root.FindName("AppTitleBar") is Border titleBar)
+                if (this.Content is FrameworkElement root)
                 {
-                    this.SetTitleBar(titleBar);
+                    // Keeps caption buttons readable when the OS theme changes under the system theme mode.
+                    root.ActualThemeChanged += (s, e) => UpdateTitleBarButtons();
+                    if (root.FindName("AppTitleBar") is Border titleBar)
+                    {
+                        this.SetTitleBar(titleBar);
+                    }
                 }
 
                 UpdateTitleBarButtons();
@@ -273,6 +279,8 @@ namespace Skrib
                 try { ApplicationData.Current.LocalSettings.Values["AppTheme"] = theme.ToString(); } catch { }
             }
             UpdateTitleBarButtons();
+            // A theme switch re-resolves TextBox brushes: re-assert the transparent editor mode.
+            try { ApplyEditorBg(EditorBgToggle != null && EditorBgToggle.IsOn, save: false); } catch { }
         }
 
         private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -578,30 +586,75 @@ namespace Skrib
             ApplyEditorBg(EditorBgToggle.IsOn);
         }
 
+        // Transparent mode overrides every TextBox background state on both resource lookup paths
+        // (plain local entries and the Light/Dark theme dictionaries), so hover/focus can never
+        // repaint the text area. Disabling restores the XAML-defined theme brushes.
         private void ApplyEditorBg(bool transparent, bool save = true)
         {
             var bg = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            string[] keys =
+            {
+                "TextControlBackground",
+                "TextControlBackgroundPointerOver",
+                "TextControlBackgroundFocused",
+                "TextControlBackgroundDisabled"
+            };
             if (transparent)
             {
                 Editor.Background = bg;
-                Editor.Resources["TextControlBackground"] = bg;
-                Editor.Resources["TextControlBackgroundPointerOver"] = bg;
-                Editor.Resources["TextControlBackgroundFocused"] = bg;
-                Editor.Resources["TextControlBackgroundDisabled"] = bg;
+                foreach (var key in keys)
+                {
+                    Editor.Resources[key] = bg;
+                    SetEditorThemeBrush("Light", key, bg);
+                    SetEditorThemeBrush("Dark", key, bg);
+                }
             }
             else
             {
                 Editor.ClearValue(TextBox.BackgroundProperty);
-                Editor.Resources.Remove("TextControlBackground");
-                Editor.Resources.Remove("TextControlBackgroundPointerOver");
-                Editor.Resources.Remove("TextControlBackgroundFocused");
-                Editor.Resources.Remove("TextControlBackgroundDisabled");
+                foreach (var key in keys)
+                {
+                    Editor.Resources.Remove(key);
+                    RestoreEditorThemeBrush("Light", key);
+                    RestoreEditorThemeBrush("Dark", key);
+                }
             }
             if (save)
             {
                 try { ApplicationData.Current.LocalSettings.Values["EditorTransparent"] = transparent; } catch { }
             }
             UpdateEditorBgState();
+        }
+
+        // Saves the XAML-defined theme brush once, then overrides it.
+        private void SetEditorThemeBrush(string theme, string key, Microsoft.UI.Xaml.Media.Brush brush)
+        {
+            try
+            {
+                if (Editor.Resources.ThemeDictionaries.TryGetValue(theme, out var entry) && entry is ResourceDictionary rd)
+                {
+                    string slot = theme + "/" + key;
+                    if (!_origEditorBgBrushes.ContainsKey(slot))
+                        _origEditorBgBrushes[slot] = rd.TryGetValue(key, out var current) ? current as Microsoft.UI.Xaml.Media.Brush : null;
+                    rd[key] = brush;
+                }
+            }
+            catch { }
+        }
+
+        // Restores the XAML-defined theme brush; leaves it alone if we never overrode it.
+        private void RestoreEditorThemeBrush(string theme, string key)
+        {
+            try
+            {
+                if (!_origEditorBgBrushes.TryGetValue(theme + "/" + key, out var orig)) return;
+                if (Editor.Resources.ThemeDictionaries.TryGetValue(theme, out var entry) && entry is ResourceDictionary rd)
+                {
+                    if (orig != null) rd[key] = orig;
+                    else rd.Remove(key);
+                }
+            }
+            catch { }
         }
 
         // Keeps the toggle state label in sync (fixed-width label so the toggle never shifts).
@@ -1110,9 +1163,14 @@ namespace Skrib
                 if (PreviewToggleButton != null)
                     PreviewToggleButton.Visibility = isMd ? Visibility.Visible : Visibility.Collapsed;
                 if (!isMd && _showMarkdownPreview)
+                {
                     SetMarkdownPreview(false);
-                else if (MenuPreview != null)
-                    MenuPreview.IsChecked = _showMarkdownPreview;
+                }
+                else
+                {
+                    if (MenuPreview != null) MenuPreview.IsChecked = _showMarkdownPreview;
+                    if (PreviewToggleButton != null) PreviewToggleButton.IsChecked = _showMarkdownPreview;
+                }
             }
             catch { }
         }
