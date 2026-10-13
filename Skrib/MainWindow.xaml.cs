@@ -66,7 +66,13 @@ namespace Skrib
                 if (this.Content is FrameworkElement root)
                 {
                     // Keeps caption buttons readable when the OS theme changes under the system theme mode.
-                    root.ActualThemeChanged += (s, e) => UpdateTitleBarButtons();
+                    // Also re-asserts the editor background: opaque mode uses an explicit
+                    // theme-matching brush, so it must follow OS theme switches.
+                    root.ActualThemeChanged += (s, e) =>
+                    {
+                        UpdateTitleBarButtons();
+                        try { ApplyEditorBg(EditorBgToggle != null && EditorBgToggle.IsOn, save: false); } catch { }
+                    };
                     if (root.FindName("AppTitleBar") is Border titleBar)
                     {
                         this.SetTitleBar(titleBar);
@@ -588,7 +594,8 @@ namespace Skrib
 
         // Transparent mode overrides every TextBox background state on both resource lookup paths
         // (plain local entries and the Light/Dark theme dictionaries), so hover/focus can never
-        // repaint the text area. Disabling restores the XAML-defined theme brushes.
+        // repaint the text area. Opaque mode sets the theme-matching brush explicitly instead of
+        // relying on ClearValue + style resolution.
         private void ApplyEditorBg(bool transparent, bool save = true)
         {
             var bg = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
@@ -612,10 +619,13 @@ namespace Skrib
             }
             else
             {
-                Editor.ClearValue(TextBox.BackgroundProperty);
+                // Explicit opaque brush for the current theme (no ClearValue: the final
+                // background must not depend on default style resolution).
+                var opaqueBrush = GetOpaqueTextBrush();
+                Editor.Background = opaqueBrush;
                 // Restore the opaque brush matching Editor.Resources (#FFFFFF light / #202020 dark).
                 // Application.Current.Resources does NOT contain our local overrides, so resolve by theme.
-                MarkdownPreviewHost.Background = GetOpaqueTextBrush();
+                MarkdownPreviewHost.Background = opaqueBrush;
                 foreach (var key in keys)
                 {
                     Editor.Resources.Remove(key);
