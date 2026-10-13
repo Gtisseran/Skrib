@@ -4,22 +4,24 @@ Skrib is a lightweight Windows text editor built with WinUI 3.
 
 It is designed for quick note-taking and simple editing on Windows 10 and Windows 11. The app includes:
 
-- plain text editing
-- word wrap toggle
-- theme selection (light, dark, system)
-- language switch between French and English
-- clean, minimal interface for everyday writing
+- plain-text editing, with support for `.txt` and `.md` files
+- a rendered Markdown preview
+- optional word wrap and editor transparency
+- light, dark, and system theme options
+- Mica and Acrylic window backgrounds
+- French and English interface languages
+- Microsoft Store rating and feedback links
 
 Skrib is intended to be a fast and distraction-free writing tool for everyday use.
 
-Get the latest release on the [Microsoft Store](https://apps.microsoft.com/detail/9p9tb8st018k) or from the [GitHub releases page](https://github.com/Gtisseran/Skrib/releases).
+Skrib is available from the [Microsoft Store](https://apps.microsoft.com/detail/9p9tb8st018k). The [GitHub releases page](https://github.com/Gtisseran/Skrib/releases) also provides an installer for the same app package; updates are distributed through the Microsoft Store.
 
 ## Requirements
 
 To build and run Skrib from source you need:
 
-- Windows 10 version 1809 (build 17763) or later, or Windows 11
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (the project targets `net8.0-windows10.0.19041.0`)
+- Windows 10 version 1809 (build 17763) or later, or Windows 11 (the package manifest declares build 17763 as its minimum; the project targets `net8.0-windows10.0.19041.0`)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 - [Visual Studio 2022](https://visualstudio.microsoft.com/) 17.8 or later with the **.NET Desktop Development** workload (recommended), or any editor plus the .NET SDK for command-line builds
 - [Git](https://git-scm.com/downloads)
 - Windows **Developer Mode** enabled (Settings > System > For developers) so the MSIX package can be deployed for debugging
@@ -40,13 +42,13 @@ Build the app (a platform must be specified, `AnyCPU` is not supported for packa
 dotnet build Skrib/Skrib.csproj -c Debug -p:Platform=x64
 ```
 
-Supported platforms: `x64`, `x86`, `arm64` (see `RuntimeIdentifiers` in `Skrib/Skrib.csproj`). For a store-ready package, build in `Release`:
+Supported platforms: `x64`, `x86`, `arm64` (see `RuntimeIdentifiers` in `Skrib/Skrib.csproj`). To create a Release build and package using the project configuration:
 
 ```powershell
 dotnet build Skrib/Skrib.csproj -c Release -p:Platform=x64
 ```
 
-To debug with UI, hot reload and the designer, open `Skrib/Skrib.csproj` in Visual Studio 2022 and press `F5`.
+To debug with the UI, Hot Reload, and the designer, open `Skrib/Skrib.csproj` in Visual Studio 2022 and press `F5`.
 
 ## Project layout
 
