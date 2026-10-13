@@ -33,6 +33,7 @@ namespace Skrib
         private bool _isInitialized = false;
         private bool _suppressDirty;
         private bool _titleRefreshQueued;
+        private bool _checkingStoreUpdates;
         private MenuFlyoutItem? _contextUndo;
         private MenuFlyoutItem? _contextRedo;
         private MenuFlyoutItem? _contextCut;
@@ -950,8 +951,114 @@ namespace Skrib
             catch { }
         }
 
-        // Opens the Microsoft Store listing (updates are handled by the Store, no GitHub updater).
+        // Checks for Store updates via StoreContext; falls back to the Store listing on failure.
+        // (Updates are handled by the Store, no GitHub updater.)
         private async void StoreButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_checkingStoreUpdates) return;
+            _checkingStoreUpdates = true;
+            bool isEn = _currentLang == "en";
+            try
+            {
+                var context = global::Windows.Services.Store.StoreContext.GetDefault();
+                if (context == null) throw new InvalidOperationException("No Store context.");
+                try
+                {
+                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                    WinRT.Interop.InitializeWithWindow.Initialize(context, hwnd);
+                }
+                catch { }
+                var updates = await context.GetAppAndOptionalStorePackageUpdatesAsync();
+                if (updates == null || updates.Count == 0)
+                {
+                    var upToDate = new ContentDialog
+                    {
+                        Title = isEn ? "Updates" : "Mises à jour",
+                        Content = isEn
+                            ? "Skrib is up to date."
+                            : "Skrib est à jour.",
+                        CloseButtonText = isEn ? "Close" : "Fermer",
+                        XamlRoot = this.Content.XamlRoot
+                    };
+                    await upToDate.ShowAsync();
+                    return;
+                }
+                var confirm = new ContentDialog
+                {
+                    Title = isEn ? "Update available" : "Mise à jour disponible",
+                    Content = isEn
+                        ? "An update is available. Installing it may close or restart the app. Do you want to install it now?"
+                        : "Une mise à jour est disponible. Son installation peut fermer ou redémarrer l'application. Voulez-vous l'installer maintenant ?",
+                    PrimaryButtonText = isEn ? "Install" : "Installer",
+                    CloseButtonText = isEn ? "Later" : "Plus tard",
+                    XamlRoot = this.Content.XamlRoot
+                };
+                if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
+                var result = await context.RequestDownloadAndInstallStorePackageUpdatesAsync(updates);
+                var state = result != null ? result.OverallState
+                    : global::Windows.Services.Store.StorePackageUpdateState.OtherError;
+                if (state == global::Windows.Services.Store.StorePackageUpdateState.Completed)
+                {
+                    var done = new ContentDialog
+                    {
+                        Title = isEn ? "Updates" : "Mises à jour",
+                        Content = isEn
+                            ? "The update was installed successfully."
+                            : "La mise à jour a été installée avec succès.",
+                        CloseButtonText = isEn ? "Close" : "Fermer",
+                        XamlRoot = this.Content.XamlRoot
+                    };
+                    await done.ShowAsync();
+                }
+                else if (state == global::Windows.Services.Store.StorePackageUpdateState.Canceled)
+                {
+                    var canceled = new ContentDialog
+                    {
+                        Title = isEn ? "Updates" : "Mises à jour",
+                        Content = isEn
+                            ? "Installation was canceled. No changes were made."
+                            : "L'installation a été annulée. Aucune modification n'a été apportée.",
+                        CloseButtonText = isEn ? "Close" : "Fermer",
+                        XamlRoot = this.Content.XamlRoot
+                    };
+                    await canceled.ShowAsync();
+                }
+                else
+                {
+                    await ShowStoreErrorAsync(isEn);
+                }
+            }
+            catch
+            {
+                await ShowStoreErrorAsync(isEn);
+            }
+            finally
+            {
+                _checkingStoreUpdates = false;
+            }
+        }
+
+        // Shows a Store error and offers the Store listing as a fallback.
+        private async System.Threading.Tasks.Task ShowStoreErrorAsync(bool isEn)
+        {
+            var error = new ContentDialog
+            {
+                Title = isEn ? "Updates" : "Mises à jour",
+                Content = isEn
+                    ? "The update check failed (no network, Store unavailable, or throttled check). Do you want to open the Store page?"
+                    : "La vérification a échoué (pas de réseau, Store indisponible ou vérification limitée). Voulez-vous ouvrir la fiche Store ?",
+                PrimaryButtonText = isEn ? "Open Store" : "Ouvrir le Store",
+                CloseButtonText = isEn ? "Close" : "Fermer",
+                XamlRoot = this.Content.XamlRoot
+            };
+            if (await error.ShowAsync() == ContentDialogResult.Primary)
+            {
+                await OpenStoreListingAsync();
+            }
+        }
+
+        // Opens the Microsoft Store listing for Skrib.
+        private async System.Threading.Tasks.Task OpenStoreListingAsync()
         {
             try
             {
