@@ -613,9 +613,9 @@ namespace Skrib
             else
             {
                 Editor.ClearValue(TextBox.BackgroundProperty);
-                // Restore the opaque theme brush explicitly: ClearValue would wipe the XAML ThemeResource.
-                if (Application.Current.Resources.TryGetValue("TextControlBackground", out var opaque) && opaque is Microsoft.UI.Xaml.Media.Brush opaqueBg)
-                    MarkdownPreviewHost.Background = opaqueBg;
+                // Restore the opaque brush matching Editor.Resources (#FFFFFF light / #202020 dark).
+                // Application.Current.Resources does NOT contain our local overrides, so resolve by theme.
+                MarkdownPreviewHost.Background = GetOpaqueTextBrush();
                 foreach (var key in keys)
                 {
                     Editor.Resources.Remove(key);
@@ -632,6 +632,31 @@ namespace Skrib
             Editor.RequestedTheme = currentTheme == ElementTheme.Dark ? ElementTheme.Light : ElementTheme.Dark;
             Editor.RequestedTheme = currentTheme;
             UpdateEditorBgState();
+        }
+
+        // Opaque brush shared by the editor and the Markdown preview host.
+        // Must match the XAML ThemeDictionaries in Editor.Resources (#FFFFFF light / #202020 dark).
+        private Microsoft.UI.Xaml.Media.Brush GetOpaqueTextBrush()
+        {
+            bool isDark = false;
+            try
+            {
+                if (this.Content is FrameworkElement root)
+                {
+                    if (root.RequestedTheme == ElementTheme.Dark) isDark = true;
+                    else if (root.RequestedTheme == ElementTheme.Light) isDark = false;
+                    else isDark = root.ActualTheme == ElementTheme.Dark;
+                }
+                else
+                {
+                    isDark = Editor.ActualTheme == ElementTheme.Dark;
+                }
+            }
+            catch { }
+            var color = isDark
+                ? Windows.UI.Color.FromArgb(0xFF, 0x20, 0x20, 0x20)
+                : Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF);
+            return new Microsoft.UI.Xaml.Media.SolidColorBrush(color);
         }
 
         // Saves the XAML-defined theme brush once, then overrides it.

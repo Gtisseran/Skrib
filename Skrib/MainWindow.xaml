@@ -191,6 +191,18 @@
             </TextBox>
 
             <Border x:Name="MarkdownPreviewHost" Grid.Row="1" Visibility="Collapsed" Background="{ThemeResource TextControlBackground}">
+                <Border.Resources>
+                    <ResourceDictionary>
+                        <ResourceDictionary.ThemeDictionaries>
+                            <ResourceDictionary x:Key="Light">
+                                <SolidColorBrush x:Key="TextControlBackground" Color="#FFFFFF"/>
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="Dark">
+                                <SolidColorBrush x:Key="TextControlBackground" Color="#202020"/>
+                            </ResourceDictionary>
+                        </ResourceDictionary.ThemeDictionaries>
+                    </ResourceDictionary>
+                </Border.Resources>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24,12,24,32">
                     <controls:MarkdownTextBlock x:Name="MarkdownPreview"
                         MaxWidth="860" HorizontalAlignment="Center"
