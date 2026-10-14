@@ -16,10 +16,6 @@
 
   <ItemGroup>
     <Content Include="Assets\**" />
-    <!-- Local-only Supabase config (gitignored): deployed with the app, never committed. -->
-    <Content Include="Config\supabase.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
   <PropertyGroup>

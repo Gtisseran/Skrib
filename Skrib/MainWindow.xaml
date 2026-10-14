@@ -661,23 +661,13 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Grid.Row="1" Grid.Column="0" x:Name="RateButton"
+                        <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" x:Name="RateButton"
                                 Click="RateButton_Click"
                                 HorizontalAlignment="Stretch"
                                 Padding="8,10">
                             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                                 <FontIcon Glyph="&#xE734;" FontSize="14" VerticalAlignment="Center" />
                                 <TextBlock x:Name="RateButtonText" Text="Noter" FontSize="12" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button Grid.Row="1" Grid.Column="1" x:Name="FeedbackButton"
-                                Click="FeedbackButton_Click"
-                                HorizontalAlignment="Stretch"
-                                Padding="8,10">
-                            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                                <FontIcon Glyph="&#xE8BD;" FontSize="14" VerticalAlignment="Center" />
-                                <TextBlock x:Name="FeedbackButtonText" Text="Avis" FontSize="12" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                         </Button>
                     </Grid>
