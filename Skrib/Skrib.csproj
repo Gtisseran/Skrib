@@ -68,7 +68,6 @@
     <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
     <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
     <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
-    <PackageCertificateThumbprint>227695DEB664557F2A2668F46C7B6CBB09A3E15E</PackageCertificateThumbprint>
     <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
     <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
     <GenerateTestArtifacts>False</GenerateTestArtifacts>
@@ -77,5 +76,6 @@
     <Version>1.0.3.0</Version>
     <PackageVersion>1.0.3.0</PackageVersion>
     <GenerateTemporaryStoreCertificate>True</GenerateTemporaryStoreCertificate>
+    <PackageCertificateThumbprint>9841B9B09067B1FF5563846731BAB2871581D969</PackageCertificateThumbprint>
   </PropertyGroup>
 </Project>

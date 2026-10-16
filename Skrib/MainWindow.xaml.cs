@@ -946,6 +946,20 @@ namespace Skrib
             if (_checkingStoreUpdates) return;
             _checkingStoreUpdates = true;
             bool isEn = _currentLang == "en";
+            // StoreContext update queries only work for the Store-signed package.
+            // A sideloaded dev package has no Store identity, so open the listing directly.
+            try
+            {
+                bool isStorePackage = false;
+                try { isStorePackage = Windows.ApplicationModel.Package.Current.SignatureKind == Windows.ApplicationModel.PackageSignatureKind.Store; }
+                catch { }
+                if (!isStorePackage)
+                {
+                    await OpenStoreListingAsync();
+                    return;
+                }
+            }
+            catch { }
             try
             {
                 var context = global::Windows.Services.Store.StoreContext.GetDefault();
