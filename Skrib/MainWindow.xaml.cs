@@ -30,6 +30,8 @@ namespace Skrib
         private MenuFlyoutItem? _contextCopy;
         private MenuFlyoutItem? _contextPaste;
         private MenuFlyoutItem? _contextSelectAll;
+        private bool? _settingsWideLayout;
+        private bool? _settingsComboBoxesStacked;
 
         public MainWindow()
         {
@@ -246,34 +248,68 @@ namespace Skrib
 
         private void UpdateSettingsLayout(double width)
         {
-            bool isWide = width >= 940;
-            bool stackComboBoxes = width < 640;
+            if (double.IsNaN(width) || width <= 0)
+            {
+                return;
+            }
 
+            bool isWide = width >= 900;
+            bool stackComboBoxes = width < 560;
+
+            double aboutWidth = 0;
             if (isWide)
             {
-                AboutColumn.Width = new GridLength(320);
-                SettingsContentGrid.ColumnSpacing = 24;
-                SettingsContentGrid.RowSpacing = 0;
-                Grid.SetRow(SettingsAboutColumn, 0);
-                Grid.SetColumn(SettingsAboutColumn, 1);
-                Grid.SetColumnSpan(SettingsAboutColumn, 1);
-            }
-            else
-            {
-                AboutColumn.Width = new GridLength(0);
-                SettingsContentGrid.ColumnSpacing = 0;
-                SettingsContentGrid.RowSpacing = 24;
-                Grid.SetRow(SettingsAboutColumn, 1);
-                Grid.SetColumn(SettingsAboutColumn, 0);
-                Grid.SetColumnSpan(SettingsAboutColumn, 2);
+                // Scale the "About" column continuously with the window instead of
+                // snapping between breakpoints, so dragging the window stays fluid.
+                aboutWidth = Math.Clamp(width * 0.30, 280, 340);
+                AboutColumn.Width = new GridLength(aboutWidth);
             }
 
-            ConfigureSettingsComboBox(ThemeComboBox, stackComboBoxes, 280);
-            ConfigureSettingsComboBox(BackdropComboBox, stackComboBoxes, 240);
-            ConfigureSettingsComboBox(LangComboBox, stackComboBoxes, 240);
+            if (_settingsWideLayout != isWide)
+            {
+                _settingsWideLayout = isWide;
+                if (isWide)
+                {
+                    SettingsContentGrid.ColumnSpacing = 24;
+                    SettingsContentGrid.RowSpacing = 0;
+                    Grid.SetRow(SettingsAboutColumn, 0);
+                    Grid.SetColumn(SettingsAboutColumn, 1);
+                    Grid.SetColumnSpan(SettingsAboutColumn, 1);
+                }
+                else
+                {
+                    AboutColumn.Width = new GridLength(0);
+                    SettingsContentGrid.ColumnSpacing = 0;
+                    SettingsContentGrid.RowSpacing = 24;
+                    Grid.SetRow(SettingsAboutColumn, 1);
+                    Grid.SetColumn(SettingsAboutColumn, 0);
+                    Grid.SetColumnSpan(SettingsAboutColumn, 2);
+                }
+            }
+
+            // The dropdowns shrink with the card and only move below the labels
+            // when there is no longer enough room to keep them inline.
+            double mainWidth = isWide ? width - aboutWidth - 24 : width;
+            double themeWidth = Math.Clamp(mainWidth * 0.38, 220, 280);
+            double comboWidth = Math.Clamp(mainWidth * 0.32, 200, 240);
+
+            if (_settingsComboBoxesStacked != stackComboBoxes)
+            {
+                _settingsComboBoxesStacked = stackComboBoxes;
+                ApplySettingsComboBoxLayout(ThemeComboBox, stackComboBoxes);
+                ApplySettingsComboBoxLayout(BackdropComboBox, stackComboBoxes);
+                ApplySettingsComboBoxLayout(LangComboBox, stackComboBoxes);
+            }
+
+            if (!stackComboBoxes)
+            {
+                ThemeComboBox.Width = themeWidth;
+                BackdropComboBox.Width = comboWidth;
+                LangComboBox.Width = comboWidth;
+            }
         }
 
-        private static void ConfigureSettingsComboBox(ComboBox comboBox, bool stacked, double inlineWidth)
+        private static void ApplySettingsComboBoxLayout(ComboBox comboBox, bool stacked)
         {
             if (stacked)
             {
@@ -289,7 +325,6 @@ namespace Skrib
                 Grid.SetRow(comboBox, 0);
                 Grid.SetColumn(comboBox, 2);
                 Grid.SetColumnSpan(comboBox, 1);
-                comboBox.Width = inlineWidth;
                 comboBox.HorizontalAlignment = HorizontalAlignment.Right;
                 comboBox.Margin = new Thickness(0);
             }
