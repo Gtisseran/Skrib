@@ -207,6 +207,7 @@ namespace Skrib
         {
             MainView.Visibility = Visibility.Collapsed;
             SettingsView.Visibility = Visibility.Visible;
+            _ = DispatcherQueue.TryEnqueue(() => UpdateSettingsLayout(SettingsContentGrid.ActualWidth));
         }
 
         private void BackButton_Click(object sender, RoutedEventArgs e)
@@ -233,6 +234,11 @@ namespace Skrib
         // - wide: main column and "About" column side by side;
         // - medium: "About" moves below the main column;
         // - narrow: dropdowns also move below their labels and stretch to the card width.
+        private void SettingsContentGrid_Loaded(object sender, RoutedEventArgs e)
+        {
+            UpdateSettingsLayout(SettingsContentGrid.ActualWidth);
+        }
+
         private void SettingsContentGrid_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             UpdateSettingsLayout(e.NewSize.Width);

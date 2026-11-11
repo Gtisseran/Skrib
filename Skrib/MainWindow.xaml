@@ -275,6 +275,7 @@
                 <Grid x:Name="SettingsContentGrid"
                       ColumnSpacing="24"
                       RowSpacing="0"
+                      Loaded="SettingsContentGrid_Loaded"
                       SizeChanged="SettingsContentGrid_SizeChanged">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
