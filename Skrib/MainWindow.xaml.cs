@@ -229,6 +229,66 @@ namespace Skrib
             }
         }
 
+        // Keeps the settings page usable at every window size:
+        // - wide: main column and "About" column side by side;
+        // - medium: "About" moves below the main column;
+        // - narrow: dropdowns also move below their labels and stretch to the card width.
+        private void SettingsContentGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            UpdateSettingsLayout(e.NewSize.Width);
+        }
+
+        private void UpdateSettingsLayout(double width)
+        {
+            bool isWide = width >= 940;
+            bool stackComboBoxes = width < 640;
+
+            if (isWide)
+            {
+                AboutColumn.Width = new GridLength(320);
+                SettingsContentGrid.ColumnSpacing = 24;
+                SettingsContentGrid.RowSpacing = 0;
+                Grid.SetRow(SettingsAboutColumn, 0);
+                Grid.SetColumn(SettingsAboutColumn, 1);
+                Grid.SetColumnSpan(SettingsAboutColumn, 1);
+            }
+            else
+            {
+                AboutColumn.Width = new GridLength(0);
+                SettingsContentGrid.ColumnSpacing = 0;
+                SettingsContentGrid.RowSpacing = 24;
+                Grid.SetRow(SettingsAboutColumn, 1);
+                Grid.SetColumn(SettingsAboutColumn, 0);
+                Grid.SetColumnSpan(SettingsAboutColumn, 2);
+            }
+
+            ConfigureSettingsComboBox(ThemeComboBox, stackComboBoxes, 280);
+            ConfigureSettingsComboBox(BackdropComboBox, stackComboBoxes, 240);
+            ConfigureSettingsComboBox(LangComboBox, stackComboBoxes, 240);
+        }
+
+        private static void ConfigureSettingsComboBox(ComboBox comboBox, bool stacked, double inlineWidth)
+        {
+            if (stacked)
+            {
+                Grid.SetRow(comboBox, 1);
+                Grid.SetColumn(comboBox, 0);
+                Grid.SetColumnSpan(comboBox, 3);
+                comboBox.Width = double.NaN;
+                comboBox.HorizontalAlignment = HorizontalAlignment.Stretch;
+                comboBox.Margin = new Thickness(0, 8, 0, 0);
+            }
+            else
+            {
+                Grid.SetRow(comboBox, 0);
+                Grid.SetColumn(comboBox, 2);
+                Grid.SetColumnSpan(comboBox, 1);
+                comboBox.Width = inlineWidth;
+                comboBox.HorizontalAlignment = HorizontalAlignment.Right;
+                comboBox.Margin = new Thickness(0);
+            }
+        }
+
         #endregion
 
         #region Theme Management
