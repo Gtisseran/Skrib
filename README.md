@@ -14,7 +14,7 @@ It is designed for quick note-taking and simple editing on Windows 10 and Window
 
 Skrib is intended to be a fast and distraction-free writing tool for everyday use.
 
-Skrib is available from the [Microsoft Store](https://apps.microsoft.com/detail/9p9tb8st018k). The [GitHub releases page](https://github.com/Gtisseran/Skrib/releases) also provides an installer for the same app package; updates are distributed through the Microsoft Store.
+Skrib is available exclusively from the [Microsoft Store](https://apps.microsoft.com/detail/9p9tb8st018k). Updates are automatically distributed through the Microsoft Store. GitHub releases do not provide installers for this app package.
 
 ## Requirements
 
