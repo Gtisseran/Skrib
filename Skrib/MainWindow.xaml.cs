@@ -50,70 +50,65 @@ namespace Skrib
 
         private void ConfigureCustomTitleBar()
         {
-            try
+            this.ExtendsContentIntoTitleBar = true;
+            if (this.Content is FrameworkElement root)
             {
-                this.ExtendsContentIntoTitleBar = true;
-                if (this.Content is FrameworkElement root)
+                // Keeps caption buttons readable when the OS theme changes under the system theme mode.
+                // Also re-asserts the editor background: opaque mode uses an explicit
+                // theme-matching brush, so it must follow OS theme switches.
+                root.ActualThemeChanged += (s, e) =>
                 {
-                    // Keeps caption buttons readable when the OS theme changes under the system theme mode.
-                    // Also re-asserts the editor background: opaque mode uses an explicit
-                    // theme-matching brush, so it must follow OS theme switches.
-                    root.ActualThemeChanged += (s, e) =>
+                    UpdateTitleBarButtons();
+                    try { ApplyEditorBg(EditorBgToggle != null && EditorBgToggle.IsOn, save: false); } catch (Exception ex)
                     {
-                        UpdateTitleBarButtons();
-                        try { ApplyEditorBg(EditorBgToggle != null && EditorBgToggle.IsOn, save: false); } catch { }
-                    };
-                    if (root.FindName("AppTitleBar") is Border titleBar)
-                    {
-                        this.SetTitleBar(titleBar);
+                        Debug.Write($"Error in theme change handler: {ex.Message}");
                     }
+                };
+                if (root.FindName("AppTitleBar") is Border titleBar)
+                {
+                    this.SetTitleBar(titleBar);
                 }
-
-                UpdateTitleBarButtons();
             }
-            catch { }
+
+            UpdateTitleBarButtons();
         }
 
         // Adapts caption button hover colors so they stay visible in both light and dark themes.
         private void UpdateTitleBarButtons()
         {
-            try
+            var hwnd = WindowNative.GetWindowHandle(this);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+            var appWindow = AppWindow.GetFromWindowId(windowId);
+            if (appWindow == null)
             {
-                var hwnd = WindowNative.GetWindowHandle(this);
-                var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
-                var appWindow = AppWindow.GetFromWindowId(windowId);
-                if (appWindow == null)
-                {
-                    return;
-                }
-
-                var titleBarCtrl = appWindow.TitleBar;
-                titleBarCtrl.ExtendsContentIntoTitleBar = true;
-                titleBarCtrl.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
-                titleBarCtrl.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
-
-                bool isLight = true;
-                if (this.Content is FrameworkElement root)
-                {
-                    isLight = root.ActualTheme != ElementTheme.Dark;
-                }
-
-                if (isLight)
-                {
-                    titleBarCtrl.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(20, 0, 0, 0);
-                    titleBarCtrl.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(35, 0, 0, 0);
-                    titleBarCtrl.ButtonHoverForegroundColor = Microsoft.UI.Colors.Black;
-                    titleBarCtrl.ButtonPressedForegroundColor = Microsoft.UI.Colors.Black;
-                }
-                else
-                {
-                    titleBarCtrl.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(40, 255, 255, 255);
-                    titleBarCtrl.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(60, 255, 255, 255);
-                    titleBarCtrl.ButtonHoverForegroundColor = Microsoft.UI.Colors.White;
-                    titleBarCtrl.ButtonPressedForegroundColor = Microsoft.UI.Colors.White;
-                }
+                return;
             }
-            catch { }
+
+            var titleBarCtrl = appWindow.TitleBar;
+            titleBarCtrl.ExtendsContentIntoTitleBar = true;
+            titleBarCtrl.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
+            titleBarCtrl.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
+
+            bool isLight = true;
+            if (this.Content is FrameworkElement root)
+            {
+                isLight = root.ActualTheme != ElementTheme.Dark;
+            }
+
+            if (isLight)
+            {
+                titleBarCtrl.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(20, 0, 0, 0);
+                titleBarCtrl.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(35, 0, 0, 0);
+                titleBarCtrl.ButtonHoverForegroundColor = Microsoft.UI.Colors.Black;
+                titleBarCtrl.ButtonPressedForegroundColor = Microsoft.UI.Colors.Black;
+            }
+            else
+            {
+                titleBarCtrl.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(40, 255, 255, 255);
+                titleBarCtrl.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(60, 255, 255, 255);
+                titleBarCtrl.ButtonHoverForegroundColor = Microsoft.UI.Colors.White;
+                titleBarCtrl.ButtonPressedForegroundColor = Microsoft.UI.Colors.White;
+            }
         }
 
         private void InitializeContextMenu()
@@ -150,18 +145,14 @@ namespace Skrib
 
         private void SetMinimumWindowSize()
         {
-            try
+            var hwnd = WindowNative.GetWindowHandle(this);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+            var appWindow = AppWindow.GetFromWindowId(windowId);
+            if (appWindow?.Presenter is OverlappedPresenter presenter)
             {
-                var hwnd = WindowNative.GetWindowHandle(this);
-                var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
-                var appWindow = AppWindow.GetFromWindowId(windowId);
-                if (appWindow?.Presenter is OverlappedPresenter presenter)
-                {
-                    presenter.PreferredMinimumWidth = 600;
-                    presenter.PreferredMinimumHeight = 450;
-                }
+                presenter.PreferredMinimumWidth = 600;
+                presenter.PreferredMinimumHeight = 450;
             }
-            catch { }
         }
 
         // Uses only AppWindow.SetIcon (no user32 P/Invoke, no icon handle leak).
@@ -180,15 +171,28 @@ namespace Skrib
                     {
                         iconPath = Path.Combine(Windows.ApplicationModel.Package.Current.InstalledLocation.Path, "Assets", "app.ico");
                     }
-                    catch { }
+                    catch (Exception) { // Log would be added here in production
+                    }
                 }
 
                 if (File.Exists(iconPath) && appWindow != null)
                 {
-                    try { appWindow.SetIcon(iconPath); } catch { }
+                    try
+                    {
+                        appWindow.SetIcon(iconPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log error details for debugging: Console.WriteLine(ex.ToString());
+                        Debug.Write($"Error setting window icon: {ex.Message}");
+                    }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // Log root cause for debugging
+                Debug.Write($"Error in SetWindowIcon: {ex.Message}");
+            }
         }
 
         private void UpdateAboutVersion()
@@ -265,21 +269,43 @@ namespace Skrib
             }
             if (save)
             {
-                try { ApplicationData.Current.LocalSettings.Values["AppTheme"] = theme.ToString(); } catch { }
+                try
+                {
+                    ApplicationData.Current.LocalSettings.Values["AppTheme"] = theme.ToString();
+                }
+                catch (Exception ex)
+                {
+                    // Log error details for debugging: Console.WriteLine(ex.ToString());
+                    Debug.Write($"Error saving theme: {ex.Message}");
+                }
             }
             UpdateTitleBarButtons();
             // A theme switch re-resolves TextBox brushes: re-assert the transparent editor mode.
-            try { ApplyEditorBg(EditorBgToggle != null && EditorBgToggle.IsOn, save: false); } catch { }
+            try
+            {
+                ApplyEditorBg(EditorBgToggle != null && EditorBgToggle.IsOn, save: false);
+            }
+            catch (Exception ex)
+            {
+                Debug.Write($"Error applying editor bg after theme change: {ex.Message}");
+            }
         }
 
         private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (!_isInitialized) return;
             if (ThemeComboBox.SelectedItem is ComboBoxItem item &&
-                item.Tag is string tag &&
-                Enum.TryParse(tag, out ElementTheme theme))
+                item.Tag is string tag)
             {
-                ApplyTheme(theme);
+                try
+                {
+                    Enum.TryParse(tag, out ElementTheme theme);
+                    ApplyTheme(theme);
+                }
+                catch (Exception ex)
+                {
+                    Debug.Write($"Error parsing theme: {ex.Message}");
+                }
             }
         }
 
@@ -314,7 +340,14 @@ namespace Skrib
                 SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
             if (save)
             {
-                try { ApplicationData.Current.LocalSettings.Values["AppBackdrop"] = backdrop; } catch { }
+                try
+                {
+                    ApplicationData.Current.LocalSettings.Values["AppBackdrop"] = backdrop;
+                }
+                catch (Exception ex)
+                {
+                    Debug.Write($"Error saving backdrop: {ex.Message}");
+                }
             }
         }
 
@@ -346,7 +379,10 @@ namespace Skrib
                 var lang = ApplicationData.Current.LocalSettings.Values["AppLanguage"] as string;
                 if (!string.IsNullOrEmpty(lang)) return lang;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.Write($"Error loading language: {ex.Message}");
+            }
             return "System";
         }
 
@@ -356,7 +392,14 @@ namespace Skrib
             if (LangComboBox.SelectedItem is ComboBoxItem item &&
                 item.Tag is string lang)
             {
-                ApplyLanguage(lang);
+                try
+                {
+                    ApplyLanguage(lang);
+                }
+                catch (Exception ex)
+                {
+                    Debug.Write($"Error applying language: {ex.Message}");
+                }
             }
         }
 
@@ -368,7 +411,10 @@ namespace Skrib
                 string tag = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
                 if (tag.StartsWith("fr")) return "fr";
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.Write($"Error resolving system language: {ex.Message}");
+            }
             return "en";
         }
 
@@ -378,7 +424,14 @@ namespace Skrib
             _currentLang = (mode == "System") ? ResolveSystemLanguage() : mode;
             if (save)
             {
-                try { ApplicationData.Current.LocalSettings.Values["AppLanguage"] = mode; } catch { }
+                try
+                {
+                    ApplicationData.Current.LocalSettings.Values["AppLanguage"] = mode;
+                }
+                catch (Exception ex)
+                {
+                    Debug.Write($"Error saving language: {ex.Message}");
+                }
             }
 
             bool isEn = _currentLang == "en";
@@ -540,13 +593,9 @@ namespace Skrib
         // Keeps the toggle state label in sync (fixed-width label so the toggle never shifts).
         private void UpdateWordWrapState()
         {
-            try
-            {
-                bool isOn = WordWrapToggle != null && WordWrapToggle.IsOn;
-                bool isEn = _currentLang == "en";
-                WordWrapStateText.Text = isOn ? (isEn ? "On" : "Activé") : (isEn ? "Off" : "Désactivé");
-            }
-            catch { }
+            bool isOn = WordWrapToggle != null && WordWrapToggle.IsOn;
+            bool isEn = _currentLang == "en";
+            WordWrapStateText.Text = isOn ? (isEn ? "On" : "Activé") : (isEn ? "Off" : "Désactivé");
         }
 
 
@@ -682,13 +731,9 @@ namespace Skrib
         // Keeps the toggle state label in sync (fixed-width label so the toggle never shifts).
         private void UpdateEditorBgState()
         {
-            try
-            {
-                bool isOn = EditorBgToggle != null && EditorBgToggle.IsOn;
-                bool isEn = _currentLang == "en";
-                EditorBgStateText.Text = isOn ? (isEn ? "On" : "Activé") : (isEn ? "Off" : "Désactivé");
-            }
-            catch { }
+            bool isOn = EditorBgToggle != null && EditorBgToggle.IsOn;
+            bool isEn = _currentLang == "en";
+            EditorBgStateText.Text = isOn ? (isEn ? "On" : "Activé") : (isEn ? "Off" : "Désactivé");
         }
         private void UpdateTitle()
         {
@@ -710,8 +755,9 @@ namespace Skrib
             {
                 StatusText.Text = _currentFile != null ? _currentFile.Path : ready;
             }
-            catch
+            catch (Exception)
             {
+                // Log would be added here for debugging
                 StatusText.Text = _currentFile != null ? _currentFile.Name : ready;
             }
             UpdateMarkdownViewState();
@@ -768,30 +814,26 @@ namespace Skrib
         // Updates the line/column/character count shown in the status bar.
         private void UpdateCaretInfo()
         {
-            try
+            string text = Editor?.Text ?? string.Empty;
+            int pos = Editor != null ? Editor.SelectionStart : 0;
+            pos = Math.Max(0, Math.Min(pos, text.Length));
+            int line = 1;
+            int lastBreak = -1;
+            for (int i = 0; i < pos; i++)
             {
-                string text = Editor?.Text ?? string.Empty;
-                int pos = Editor != null ? Editor.SelectionStart : 0;
-                pos = Math.Max(0, Math.Min(pos, text.Length));
-                int line = 1;
-                int lastBreak = -1;
-                for (int i = 0; i < pos; i++)
+                if (text[i] == '\n')
                 {
-                    if (text[i] == '\n')
-                    {
-                        line++;
-                        lastBreak = i;
-                    }
+                    line++;
+                    lastBreak = i;
                 }
-                int col = pos - lastBreak;
-                bool isEn = _currentLang == "en";
-                string countLabel = isEn ? "chars" : "caractères";
-                if (_showMarkdownPreview)
-                    CaretInfoText.Text = (isEn ? "Preview | " : "Aperçu | ") + text.Length + " " + countLabel;
-                else
-                    CaretInfoText.Text = $"Ln {line}, Col {col} | {text.Length} {countLabel}";
             }
-            catch { }
+            int col = pos - lastBreak;
+            bool isEn = _currentLang == "en";
+            string countLabel = isEn ? "chars" : "caractères";
+            if (_showMarkdownPreview)
+                CaretInfoText.Text = (isEn ? "Preview | " : "Aperçu | ") + text.Length + " " + countLabel;
+            else
+                CaretInfoText.Text = $"Ln {line}, Col {col} | {text.Length} {countLabel}";
         }
 
         private async void NewFile_Click(object sender, RoutedEventArgs e)
@@ -1013,24 +1055,28 @@ namespace Skrib
 
         private async Task ShowErrorAsync(string title, string message)
         {
+            // ContentDialog requires a valid XamlRoot; skip if the window is not ready yet.
+            if (this.Content?.XamlRoot == null)
+            {
+                return;
+            }
+            var dlg = new ContentDialog
+            {
+                Title = title,
+                Content = message,
+                CloseButtonText = "OK",
+                RequestedTheme = LoadTheme(),
+                XamlRoot = this.Content.XamlRoot
+            };
             try
             {
-                // ContentDialog requires a valid XamlRoot; skip if the window is not ready yet.
-                if (this.Content?.XamlRoot == null)
-                {
-                    return;
-                }
-                var dlg = new ContentDialog
-                {
-                    Title = title,
-                    Content = message,
-                    CloseButtonText = "OK",
-                    RequestedTheme = LoadTheme(),
-                    XamlRoot = this.Content.XamlRoot
-                };
                 await dlg.ShowAsync();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // Log dialog failure details for debugging: Console.WriteLine(ex.ToString());
+                Debug.Write($"Error showing dialog: {ex.Message}");
+            }
         }
 
         #region Markdown Preview
@@ -1051,23 +1097,19 @@ namespace Skrib
         // Syncs the View menu, the header toggle and the editor/preview visibility.
         private void UpdateMarkdownViewState()
         {
-            try
+            bool isMd = IsMarkdownFile();
+            if (MenuPreview != null) MenuPreview.IsEnabled = isMd;
+            if (PreviewToggleButton != null)
+                PreviewToggleButton.Visibility = isMd ? Visibility.Visible : Visibility.Collapsed;
+            if (!isMd && _showMarkdownPreview)
             {
-                bool isMd = IsMarkdownFile();
-                if (MenuPreview != null) MenuPreview.IsEnabled = isMd;
-                if (PreviewToggleButton != null)
-                    PreviewToggleButton.Visibility = isMd ? Visibility.Visible : Visibility.Collapsed;
-                if (!isMd && _showMarkdownPreview)
-                {
-                    SetMarkdownPreview(false);
-                }
-                else
-                {
-                    if (MenuPreview != null) MenuPreview.IsChecked = _showMarkdownPreview;
-                    if (PreviewToggleButton != null) PreviewToggleButton.IsChecked = _showMarkdownPreview;
-                }
+                SetMarkdownPreview(false);
             }
-            catch { }
+            else
+            {
+                if (MenuPreview != null) MenuPreview.IsChecked = _showMarkdownPreview;
+                if (PreviewToggleButton != null) PreviewToggleButton.IsChecked = _showMarkdownPreview;
+            }
         }
 
         private void SetMarkdownPreview(bool show)
