@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Windowing;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using Windows.Storage;
@@ -61,7 +62,7 @@ namespace Skrib
                     UpdateTitleBarButtons();
                     try { ApplyEditorBg(EditorBgToggle != null && EditorBgToggle.IsOn, save: false); } catch (Exception ex)
                     {
-                        Debug.Write($"Error in theme change handler: {ex.Message}");
+                        System.Diagnostics.Debug.Write($"Error in theme change handler: {ex.Message}");
                     }
                 };
                 if (root.FindName("AppTitleBar") is Border titleBar)
@@ -184,14 +185,14 @@ namespace Skrib
                     catch (Exception ex)
                     {
                         // Log error details for debugging: Console.WriteLine(ex.ToString());
-                        Debug.Write($"Error setting window icon: {ex.Message}");
+                        System.Diagnostics.Debug.Write($"Error setting window icon: {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
                 // Log root cause for debugging
-                Debug.Write($"Error in SetWindowIcon: {ex.Message}");
+                System.Diagnostics.Debug.Write($"Error in SetWindowIcon: {ex.Message}");
             }
         }
 
@@ -276,7 +277,7 @@ namespace Skrib
                 catch (Exception ex)
                 {
                     // Log error details for debugging: Console.WriteLine(ex.ToString());
-                    Debug.Write($"Error saving theme: {ex.Message}");
+                    System.Diagnostics.Debug.Write($"Error saving theme: {ex.Message}");
                 }
             }
             UpdateTitleBarButtons();
@@ -287,7 +288,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                Debug.Write($"Error applying editor bg after theme change: {ex.Message}");
+                System.Diagnostics.Debug.Write($"Error applying editor bg after theme change: {ex.Message}");
             }
         }
 
@@ -304,7 +305,7 @@ namespace Skrib
                 }
                 catch (Exception ex)
                 {
-                    Debug.Write($"Error parsing theme: {ex.Message}");
+                    System.Diagnostics.Debug.Write($"Error parsing theme: {ex.Message}");
                 }
             }
         }
@@ -346,7 +347,7 @@ namespace Skrib
                 }
                 catch (Exception ex)
                 {
-                    Debug.Write($"Error saving backdrop: {ex.Message}");
+                    System.Diagnostics.Debug.Write($"Error saving backdrop: {ex.Message}");
                 }
             }
         }
@@ -381,7 +382,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                Debug.Write($"Error loading language: {ex.Message}");
+                System.Diagnostics.Debug.Write($"Error loading language: {ex.Message}");
             }
             return "System";
         }
@@ -398,7 +399,7 @@ namespace Skrib
                 }
                 catch (Exception ex)
                 {
-                    Debug.Write($"Error applying language: {ex.Message}");
+                    System.Diagnostics.Debug.Write($"Error applying language: {ex.Message}");
                 }
             }
         }
@@ -413,7 +414,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                Debug.Write($"Error resolving system language: {ex.Message}");
+                System.Diagnostics.Debug.Write($"Error resolving system language: {ex.Message}");
             }
             return "en";
         }
@@ -430,7 +431,7 @@ namespace Skrib
                 }
                 catch (Exception ex)
                 {
-                    Debug.Write($"Error saving language: {ex.Message}");
+                    System.Diagnostics.Debug.Write($"Error saving language: {ex.Message}");
                 }
             }
 
@@ -1075,7 +1076,7 @@ namespace Skrib
             catch (Exception ex)
             {
                 // Log dialog failure details for debugging: Console.WriteLine(ex.ToString());
-                Debug.Write($"Error showing dialog: {ex.Message}");
+                System.Diagnostics.Debug.Write($"Error showing dialog: {ex.Message}");
             }
         }
 
