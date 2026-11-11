@@ -271,11 +271,11 @@
             </StackPanel>
 
             <!-- Content: responsive (side-by-side when wide, stacked when narrow) -->
-            <ScrollViewer Grid.Row="1" Padding="20,0,20,24" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <Grid x:Name="SettingsContentGrid" ColumnSpacing="24" RowSpacing="0">
+            <ScrollViewer Grid.Row="1" Padding="8" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid x:Name="SettingsContentGrid" ColumnSpacing="16" RowSpacing="12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition x:Name="AboutColumn" Width="300" />
+                        <ColumnDefinition x:Name="AboutColumn" Width="Auto" MinWidth="280" MaxWidth="350" />
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -332,64 +332,36 @@
                         </VisualStateGroup>
                     </VisualStateManager.VisualStateGroups>
 
-                    <StackPanel x:Name="SettingsMainColumn" Grid.Column="0" Grid.Row="0" HorizontalAlignment="Stretch" Spacing="24">
+                    <StackPanel x:Name="SettingsMainColumn" Grid.Column="0" Grid.Row="0" HorizontalAlignment="Stretch" Spacing="16">
 
                         <!-- Appearance -->
-                        <StackPanel Spacing="8" HorizontalAlignment="Stretch">
-                            <TextBlock x:Name="SectionAppearanceTitle" Text="Apparence" FontSize="14" FontWeight="SemiBold" Margin="4,0,0,4" />
+                        <Border Padding="8,6" CornerRadius="6">
+                            <TextBlock x:Name="SectionAppearanceTitle" Text="Apparence" FontSize="14" FontWeight="SemiBold" Margin="0" />
+                        </Border>
 
                             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                     BorderThickness="1"
                                     CornerRadius="6"
-                                    MinHeight="76"
-                                    Padding="16,12"
+                                    MinHeight="70"
+                                    Padding="8,6"
                                     HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16" RowSpacing="0" VerticalAlignment="Center">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
-                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                            VerticalAlignment="Center">
-                                        <FontIcon Glyph="&#xE790;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                  Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                                    </Border>
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                        <TextBlock x:Name="ThemeHeaderTitle" Text="Thème de l'application" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                        <TextBlock x:Name="ThemeHeaderDesc" Text="Choisissez le thème à afficher dans Skrib" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                    </StackPanel>
-
+                                <StackPanel Spacing="4">
+                                    <TextBlock x:Name="ThemeHeaderTitle" Text="Thème de l'application" FontWeight="SemiBold" FontSize="13" />
+                                    <TextBlock x:Name="ThemeHeaderDesc" Text="Choisissez le thème à afficher dans Skrib" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     <ComboBox Grid.Column="2" x:Name="ThemeComboBox"
                                               SelectionChanged="ThemeComboBox_SelectionChanged"
-                                              Width="280"
+                                              Width="180"
                                               HorizontalAlignment="Right"
                                               VerticalAlignment="Center">
                                         <ComboBoxItem Tag="Light">
-                                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                                <FontIcon Glyph="&#xE706;" FontSize="16" VerticalAlignment="Center" />
-                                                <TextBlock x:Name="ThemeLightComboText" Text="Clair" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                            </StackPanel>
+                                            <TextBlock x:Name="ThemeLightComboText" Text="Clair" VerticalAlignment="Center" MinWidth="100" MaxWidth="250" />
                                         </ComboBoxItem>
                                         <ComboBoxItem Tag="Dark">
-                                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                                <FontIcon Glyph="&#xE708;" FontSize="16" VerticalAlignment="Center" />
-                                                <TextBlock x:Name="ThemeDarkComboText" Text="Sombre" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                            </StackPanel>
+                                            <TextBlock x:Name="ThemeDarkComboText" Text="Sombre" VerticalAlignment="Center" MinWidth="100" MaxWidth="250" />
                                         </ComboBoxItem>
                                         <ComboBoxItem Tag="Default">
-                                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                                <FontIcon Glyph="&#xE770;" FontSize="16" VerticalAlignment="Center" />
-                                                <TextBlock x:Name="ThemeSystemComboText" Text="Utiliser le thème du système" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                            </StackPanel>
+                                            <TextBlock x:Name="ThemeSystemComboText" Text="Utiliser le thème du système" VerticalAlignment="Center" MinWidth="140" MaxWidth="350" />
                                         </ComboBoxItem>
                                     </ComboBox>
                                 </Grid>
@@ -400,197 +372,146 @@
                                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                     BorderThickness="1"
                                     CornerRadius="6"
-                                    MinHeight="76"
-                                    Padding="16,12"
+                                    MinHeight="70"
+                                    Padding="8,6"
                                     HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16" RowSpacing="0" VerticalAlignment="Center">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
-                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                            VerticalAlignment="Center">
-                                        <FontIcon Glyph="&#xE81E;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                   Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                                    </Border>
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                        <TextBlock x:Name="BackdropHeaderTitle" Text="Arrière-plan" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                        <TextBlock x:Name="BackdropHeaderDesc" Text="Choisissez l'arrière-plan affiché dans Skrib" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                    </StackPanel>
-
-                                    <ComboBox Grid.Column="2" x:Name="BackdropComboBox"
+                                <StackPanel Spacing="4">
+                                    <TextBlock x:Name="BackdropHeaderTitle" Text="Arrière-plan" FontWeight="SemiBold" FontSize="13" />
+                                    <TextBlock x:Name="BackdropHeaderDesc" Text="Choisissez l'arrière-plan affiché dans Skrib" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <ComboBox x:Name="BackdropComboBox"
                                               SelectionChanged="BackdropComboBox_SelectionChanged"
-                                              Width="240"
-                                              HorizontalAlignment="Right"
-                                              VerticalAlignment="Center">
+                                              Width="180"
+                                              HorizontalAlignment="Right">
                                         <ComboBoxItem Tag="Mica">
-                                                <TextBlock x:Name="BackdropMicaComboText" Text="Mica" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                                <TextBlock x:Name="BackdropMicaComboText" Text="Mica" VerticalAlignment="Center" />
                                         </ComboBoxItem>
                                         <ComboBoxItem Tag="Acrylic">
-                                                <TextBlock x:Name="BackdropAcrylicComboText" Text="Acrylique" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                                <TextBlock x:Name="BackdropAcrylicComboText" Text="Acrylique" VerticalAlignment="Center" />
                                         </ComboBoxItem>
                                     </ComboBox>
-                                </Grid>
+                                </StackPanel>
                             </Border>
-
-<Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="6"
-                                    MinHeight="76"
-                                    Padding="16,12"
-                                    HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16" RowSpacing="0" VerticalAlignment="Center">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
-                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                            VerticalAlignment="Center">
-                                        <FontIcon Glyph="&#xE775;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                  Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                                    </Border>
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                        <TextBlock x:Name="LangHeaderTitle" Text="Langue" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                        <TextBlock x:Name="LangHeaderDesc" Text="Choisissez la langue de l'application" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                    </StackPanel>
-
-                                    <ComboBox Grid.Column="2" x:Name="LangComboBox"
-                                              SelectionChanged="LangComboBox_SelectionChanged"
-                                              Width="240"
-                                              HorizontalAlignment="Right"
-                                              VerticalAlignment="Center">
-                                        <ComboBoxItem Tag="fr">
-                                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                                <Border Width="22" Height="15" CornerRadius="2" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" VerticalAlignment="Center">
-                                                    <Image Source="ms-appx:///Assets/Flags/fr.png" Stretch="Fill" />
-                                                </Border>
-                                                <TextBlock x:Name="LangFrComboText" Text="Français (FR)" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                            </StackPanel>
-                                        </ComboBoxItem>
-                                        <ComboBoxItem Tag="en">
-                                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                                <Border Width="22" Height="15" CornerRadius="2" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" VerticalAlignment="Center">
-                                                    <Image Source="ms-appx:///Assets/Flags/en.png" Stretch="Fill" />
-                                                </Border>
-                                                <TextBlock x:Name="LangEnComboText" Text="English (EN)" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                            </StackPanel>
-                                        </ComboBoxItem>
-                                            <ComboBoxItem Tag="System">
-                                                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                                    <FontIcon Glyph="&#xE774;" FontSize="16" VerticalAlignment="Center" />
-                                                    <TextBlock x:Name="LangSystemComboText" Text="Système" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                </StackPanel>
-                                            </ComboBoxItem>
-                                    </ComboBox>
-                                </Grid>
-                            </Border>
-                        </StackPanel>
-
-                        <!-- Editor -->
-                        <StackPanel Spacing="8" HorizontalAlignment="Stretch">
-                            <TextBlock x:Name="SectionEditorTitle" Text="Éditeur" FontSize="14" FontWeight="SemiBold" Margin="4,0,0,4" />
 
                             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                     BorderThickness="1"
                                     CornerRadius="6"
-                                    MinHeight="76"
-                                    Padding="16,12"
+                                    MinHeight="70"
+                                    Padding="8,6"
                                     HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16" RowSpacing="0" VerticalAlignment="Center">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="4">
+                                    <TextBlock x:Name="LangHeaderTitle" Text="Langue" FontWeight="SemiBold" FontSize="13" />
+                                    <TextBlock x:Name="LangHeaderDesc" Text="Choisissez la langue de l'application" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <ComboBox x:Name="LangComboBox"
+                                              SelectionChanged="LangComboBox_SelectionChanged"
+                                              Width="200"
+                                              HorizontalAlignment="Right">
+                                        <ComboBoxItem Tag="fr">
+                                                <TextBlock x:Name="LangFrComboText" Text="Français (FR)" VerticalAlignment="Center" MinWidth="90" MaxWidth="200" />
+                                        </ComboBoxItem>
+                                        <ComboBoxItem Tag="en">
+                                                <TextBlock x:Name="LangEnComboText" Text="English (EN)" VerticalAlignment="Center" MinWidth="140" MaxWidth="350" />
+                                        </ComboBoxItem>
+                                        <ComboBoxItem Tag="System">
+                                                <TextBlock x:Name="LangSystemComboText" Text="Système" VerticalAlignment="Center" MinWidth="80" MaxWidth="200" />
+                                        </ComboBoxItem>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Border>
 
-                                    <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
-                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                            VerticalAlignment="Center">
-                                        <FontIcon Glyph="&#xE751;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                  Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                                    </Border>
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                        <TextBlock x:Name="WordWrapTitle" Text="Retour automatique à la ligne" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                        <TextBlock x:Name="WordWrapDesc" Text="Renvoyer automatiquement le texte à la ligne" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                        <TextBlock x:Name="WordWrapStateText" Text="Activé" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Width="70" TextAlignment="Right" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    MinHeight="70"
+                                    Padding="8,6"
+                                    HorizontalAlignment="Stretch">
+                                <StackPanel Spacing="4">
+                                    <TextBlock x:Name="WordWrapTitle" Text="Retour automatique à la ligne" FontWeight="SemiBold" FontSize="13" />
+                                    <TextBlock x:Name="WordWrapDesc" Text="Renvoyer automatiquement le texte à la ligne" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <TextBlock x:Name="WordWrapStateText" Text="Activé" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Width="60" TextAlignment="Right" />
                                         <ToggleSwitch x:Name="WordWrapToggle"
                                                       IsOn="True"
                                                       Toggled="WordWrapToggle_Toggled"
                                                       VerticalAlignment="Center"
                                                       Margin="0,0,4,0"
-                                                      MinWidth="0"
                                                       OnContent="" OffContent="" />
                                     </StackPanel>
-                                </Grid>
+                                </StackPanel>
                             </Border>
 
                             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                     BorderThickness="1"
                                     CornerRadius="6"
-                                    MinHeight="76"
-                                    Padding="16,12"
+                                    MinHeight="70"
+                                    Padding="8,6"
                                     HorizontalAlignment="Stretch">
-                                <Grid ColumnSpacing="16" RowSpacing="0" VerticalAlignment="Center">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
-                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                            VerticalAlignment="Center">
-                                        <FontIcon Glyph="&#xE70F;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                   Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                                    </Border>
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                        <TextBlock x:Name="EditorBgTitle" Text="Fond de la zone de texte" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                        <TextBlock x:Name="EditorBgDesc" Text="Afficher l'arrière-plan de l'application derrière le texte" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                        <TextBlock x:Name="EditorBgStateText" Text="Désactivé" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Width="70" TextAlignment="Right" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                <StackPanel Spacing="4">
+                                    <TextBlock x:Name="EditorBgTitle" Text="Fond de la zone de texte" FontWeight="SemiBold" FontSize="13" />
+                                    <TextBlock x:Name="EditorBgDesc" Text="Afficher l'arrière-plan de l'application derrière le texte" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <TextBlock x:Name="EditorBgStateText" Text="Désactivé" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Width="60" TextAlignment="Right" />
                                         <ToggleSwitch x:Name="EditorBgToggle"
                                               IsOn="False"
                                               Toggled="EditorBgToggle_Toggled"
                                               VerticalAlignment="Center"
                                               Margin="0,0,4,0"
-                                              MinWidth="0"
                                               OnContent="" OffContent="" />
                                     </StackPanel>
-                                </Grid>
+                                </StackPanel>
+                            </Border>
+
+                        </StackPanel>
+
+                        <!-- Editor -->
+                        <Border Padding="8,6" CornerRadius="6">
+                            <TextBlock x:Name="SectionEditorTitle" Text="Éditeur" FontSize="14" FontWeight="SemiBold" Margin="0" />
+                        </Border>
+
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    MinHeight="70"
+                                    Padding="8,6"
+                                    HorizontalAlignment="Stretch">
+                                <StackPanel Spacing="4">
+                                    <TextBlock x:Name="WordWrapTitle" Text="Retour automatique à la ligne" FontWeight="SemiBold" FontSize="13" />
+                                    <TextBlock x:Name="WordWrapDesc" Text="Renvoyer automatiquement le texte à la ligne" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <TextBlock x:Name="WordWrapStateText" Text="Activé" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Width="60" TextAlignment="Right" />
+                                        <ToggleSwitch x:Name="WordWrapToggle"
+                                                      IsOn="True"
+                                                      Toggled="WordWrapToggle_Toggled"
+                                                      VerticalAlignment="Center"
+                                                      Margin="0,0,4,0"
+                                                      OnContent="" OffContent="" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    MinHeight="70"
+                                    Padding="8,6"
+                                    HorizontalAlignment="Stretch">
+                                <StackPanel Spacing="4">
+                                    <TextBlock x:Name="EditorBgTitle" Text="Fond de la zone de texte" FontWeight="SemiBold" FontSize="13" />
+                                    <TextBlock x:Name="EditorBgDesc" Text="Afficher l'arrière-plan de l'application derrière le texte" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <TextBlock x:Name="EditorBgStateText" Text="Désactivé" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Width="60" TextAlignment="Right" />
+                                        <ToggleSwitch x:Name="EditorBgToggle"
+                                              IsOn="False"
+                                              Toggled="EditorBgToggle_Toggled"
+                                              VerticalAlignment="Center"
+                                              Margin="0,0,4,0"
+                                              OnContent="" OffContent="" />
+                                    </StackPanel>
+                                </StackPanel>
                             </Border>
                         </StackPanel>
 
@@ -604,34 +525,16 @@
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1"
                             CornerRadius="6"
-                            MinHeight="76"
-                            Padding="16,12"
+                            MinHeight="80"
+                            Padding="8,6"
                             HorizontalAlignment="Stretch">
-                        <Grid ColumnSpacing="16" RowSpacing="0" VerticalAlignment="Center">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-
-                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="6"
-                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                    VerticalAlignment="Center">
-                                <Image Source="ms-appx:///Assets/Square44x44Logo.targetsize-24.png" Width="24" Height="24"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                <TextBlock x:Name="AboutTitle" Text="Skrib" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                <TextBlock x:Name="AboutDesc" Text="Version" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                            </StackPanel>
-                        </Grid>
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="AboutTitle" Text="Skrib" FontWeight="SemiBold" FontSize="13" />
+                            <TextBlock x:Name="AboutDesc" Text="Version" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
                     </Border>
 
-                    <Grid ColumnSpacing="8" RowSpacing="8">
+                    <Grid ColumnSpacing="8" RowSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
@@ -647,7 +550,9 @@
                                 Padding="8,10">
                             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                             <Viewbox Width="16" Height="16" VerticalAlignment="Center"><Path Data="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" Fill="{ThemeResource TextFillColorPrimaryBrush}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" /></Viewbox>
-                                <TextBlock x:Name="GitHubButtonText" Text="GitHub" FontSize="12" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="GitHubButtonText" Text="GitHub" FontSize="12" TextWrapping="Wrap">
+                                    <Run Foreground="{ThemeResource TextFillColorSecondaryBrush}">GitHub</Run>
+                                </TextBlock>
                             </StackPanel>
                         </Button>
 
@@ -657,7 +562,9 @@
                                 Padding="8,10">
                             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                                 <FontIcon Glyph="&#xE734;" FontSize="14" VerticalAlignment="Center" />
-                                <TextBlock x:Name="RateButtonText" Text="Noter" FontSize="12" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="RateButtonText" Text="Noter" FontSize="12" TextWrapping="Wrap">
+                                    <Run Foreground="{ThemeResource TextFillColorSecondaryBrush}">Noter</Run>
+                                </TextBlock>
                             </StackPanel>
                         </Button>
                     </Grid>
