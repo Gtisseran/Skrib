@@ -190,38 +190,30 @@
                 </TextBox.Resources>
             </TextBox>
 
-            <Border x:Name="MarkdownPreviewHost" Grid.Row="1" Visibility="Collapsed" Background="{ThemeResource TextControlBackground}">
-                <Border.Resources>
-                    <ResourceDictionary>
-                        <ResourceDictionary.ThemeDictionaries>
-                            <ResourceDictionary x:Key="Light">
-                                <SolidColorBrush x:Key="TextControlBackground" Color="#FFFFFF"/>
-                            </ResourceDictionary>
-                            <ResourceDictionary x:Key="Dark">
-                                <SolidColorBrush x:Key="TextControlBackground" Color="#202020"/>
-                            </ResourceDictionary>
-                        </ResourceDictionary.ThemeDictionaries>
-                    </ResourceDictionary>
-                </Border.Resources>
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24,12,24,32">
+            <Border x:Name="MarkdownPreviewHost" Grid.Row="1" Visibility="Collapsed"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="16">
                     <controls:MarkdownTextBlock x:Name="MarkdownPreview"
-                        MaxWidth="860" HorizontalAlignment="Center"
+                        HorizontalAlignment="Stretch"
                         FontSize="15" Background="Transparent" TextWrapping="Wrap"
                         IsTextSelectionEnabled="True" UseSyntaxHighlighting="True" WrapCodeBlock="True"
                         LinkClicked="MarkdownPreview_LinkClicked" LinkForeground="{ThemeResource AccentTextFillColorPrimaryBrush}"
-                        Header1FontSize="28" Header1FontWeight="SemiBold" Header1Margin="0,20,0,8"
-                        Header2FontSize="22" Header2FontWeight="SemiBold" Header2Margin="0,18,0,6"
-                        Header3FontSize="18" Header3FontWeight="SemiBold" Header3Margin="0,16,0,4"
-                        Header4FontSize="16" Header4FontWeight="SemiBold" Header4Margin="0,12,0,4"
-                        Header5FontSize="14" Header5FontWeight="SemiBold" Header5Margin="0,8,0,4"
-                        Header6FontSize="14" Header6FontWeight="SemiBold" Header6Margin="0,8,0,4"
-                        ParagraphMargin="0,0,0,10" ParagraphLineHeight="22"
-                        ListMargin="0,0,0,10" ListGutterWidth="28" ListBulletSpacing="8"
-                        QuoteBackground="{ThemeResource SubtleFillColorSecondaryBrush}" QuoteBorderBrush="{ThemeResource AccentFillColorDefaultBrush}" QuoteBorderThickness="3,0,0,0" QuoteForeground="{ThemeResource TextFillColorSecondaryBrush}" QuoteMargin="0,0,0,10" QuotePadding="10,6,10,6"
-                        CodeFontFamily="Consolas" CodeBackground="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CodeBorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" CodeBorderThickness="1" CodeMargin="0,0,0,12" CodePadding="12"
-                        InlineCodeFontFamily="Consolas" InlineCodeBackground="{ThemeResource SubtleFillColorSecondaryBrush}" InlineCodeBorderThickness="0" InlineCodeMargin="0" InlineCodePadding="4,1,4,2"
+                        Header1FontSize="26" Header1FontWeight="SemiBold" Header1Margin="0,24,0,10"
+                        Header2FontSize="20" Header2FontWeight="SemiBold" Header2Margin="0,20,0,8"
+                        Header3FontSize="17" Header3FontWeight="SemiBold" Header3Margin="0,16,0,6"
+                        Header4FontSize="15" Header4FontWeight="SemiBold" Header4Margin="0,12,0,5"
+                        Header5FontSize="13" Header5FontWeight="SemiBold" Header5Margin="0,10,0,4"
+                        Header6FontSize="13" Header6FontWeight="SemiBold" Header6Margin="0,10,0,4"
+                        ParagraphMargin="0,0,0,12" ParagraphLineHeight="24"
+                        ListMargin="0,0,0,12" ListGutterWidth="24" ListBulletSpacing="8"
+                        QuoteBackground="{ThemeResource SubtleFillColorSecondaryBrush}" QuoteBorderBrush="{ThemeResource AccentFillColorDefaultBrush}" QuoteBorderThickness="2,0,0,0" QuoteForeground="{ThemeResource TextFillColorSecondaryBrush}" QuoteMargin="0,0,0,12" QuotePadding="10,6,10,6"
+                        CodeFontFamily="Consolas" CodeBackground="{ThemeResource SubtleFillColorSecondaryBrush}" CodeBorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" CodeBorderThickness="0" CodeMargin="0,0,0,12" CodePadding="12"
+                        InlineCodeFontFamily="Consolas" InlineCodeBackground="{ThemeResource SubtleFillColorSecondaryBrush}" InlineCodeBorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" InlineCodeBorderThickness="0" InlineCodeMargin="0,1,0,1" InlineCodePadding="4,1,4,2"
                         TableBorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" TableBorderThickness="1" TableCellPadding="8,6" TableMargin="0,0,0,12"
-                        HorizontalRuleBrush="{ThemeResource DividerStrokeColorDefaultBrush}" HorizontalRuleThickness="1" HorizontalRuleMargin="16,16,16,16"
+                        HorizontalRuleBrush="{ThemeResource DividerStrokeColorDefaultBrush}" HorizontalRuleThickness="1" HorizontalRuleMargin="20,20,20,20"
                         ImageMaxWidth="760" />
                 </ScrollViewer>
             </Border>
