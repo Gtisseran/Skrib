@@ -200,7 +200,7 @@
                     <controls:MarkdownTextBlock x:Name="MarkdownPreview"
                         HorizontalAlignment="Stretch"
                         FontSize="15" Background="Transparent" TextWrapping="Wrap"
-                        IsTextSelectionEnabled="False" UseSyntaxHighlighting="True" WrapCodeBlock="True"
+                        IsTextSelectionEnabled="True" UseSyntaxHighlighting="True" WrapCodeBlock="True"
                         LinkClicked="MarkdownPreview_LinkClicked" LinkForeground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                         Header1FontSize="26" Header1FontWeight="SemiBold" Header1Margin="0,24,0,10"
                         Header2FontSize="20" Header2FontWeight="SemiBold" Header2Margin="0,20,0,8"
