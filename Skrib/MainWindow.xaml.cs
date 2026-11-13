@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Windowing;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
 using Windows.Storage;
@@ -200,7 +201,7 @@ namespace Skrib
 
         private void UpdateAboutVersion()
         {
-            AboutDesc.Text = "Version " + GetVersionString();
+            AboutDesc.Text = Loc("Version", "Version", "Versión") + " " + GetVersionString();
         }
 
         #region Settings Page Navigation
@@ -467,11 +468,36 @@ namespace Skrib
 
         #region Language Management
 
+        // Returns the string matching the active language. English is the source of truth,
+        // French and Spanish follow the same order everywhere so a new language only needs
+        // one extra argument per string.
+        private string Loc(string en, string fr, string es)
+        {
+            switch (_currentLang)
+            {
+                case LanguageHelper.English: return en;
+                case LanguageHelper.Spanish: return es;
+                default: return fr;
+            }
+        }
+
         private void ApplySavedLanguage()
         {
             var mode = LoadLanguage();
             ApplyLanguage(mode, save: false);
-            LangComboBox.SelectedIndex = (mode == "en") ? 1 : ((mode == "System") ? 2 : 0);
+            LangComboBox.SelectedIndex = FindLanguageIndex(mode);
+        }
+
+        // Resolves the dropdown entry matching the saved mode (stays correct if items get reordered).
+        private int FindLanguageIndex(string mode)
+        {
+            string tag = (mode == LanguageHelper.SystemTag) ? LanguageHelper.SystemTag : mode;
+            for (int i = 0; i < LangComboBox.Items.Count; i++)
+            {
+                if (LangComboBox.Items[i] is ComboBoxItem item && item.Tag as string == tag)
+                    return i;
+            }
+            return 0;
         }
 
         private static string LoadLanguage()
@@ -485,7 +511,7 @@ namespace Skrib
             {
                 System.Diagnostics.Debug.Write($"Error loading language: {ex.Message}");
             }
-            return "System";
+            return LanguageHelper.SystemTag;
         }
 
         private void LangComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -510,20 +536,19 @@ namespace Skrib
         {
             try
             {
-                string tag = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-                if (tag.StartsWith("fr")) return "fr";
+                return LanguageHelper.ResolveSystemLanguage(CultureInfo.CurrentUICulture.Name);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.Write($"Error resolving system language: {ex.Message}");
             }
-            return "en";
+            return LanguageHelper.English;
         }
 
         private void ApplyLanguage(string lang, bool save = true)
         {
-            string mode = (lang == "System") ? "System" : ((lang == "en") ? "en" : "fr");
-            _currentLang = (mode == "System") ? ResolveSystemLanguage() : mode;
+            string mode = LanguageHelper.NormalizeMode(lang);
+            _currentLang = (mode == LanguageHelper.SystemTag) ? ResolveSystemLanguage() : mode;
             if (save)
             {
                 try
@@ -536,126 +561,63 @@ namespace Skrib
                 }
             }
 
-            bool isEn = _currentLang == "en";
+            MenuFile.Title = Loc("File", "Fichier", "Archivo");
+            MenuNew.Text = Loc("New", "Nouveau", "Nuevo");
+            MenuOpen.Text = Loc("Open...", "Ouvrir...", "Abrir...");
+            MenuSave.Text = Loc("Save", "Enregistrer", "Guardar");
+            MenuSaveAs.Text = Loc("Save As...", "Enregistrer sous...", "Guardar como...");
+            MenuExit.Text = Loc("Exit", "Quitter", "Salir");
 
-            if (isEn)
-            {
-                MenuFile.Title = "File";
-                MenuNew.Text = "New";
-                MenuOpen.Text = "Open...";
-                MenuSave.Text = "Save";
-                MenuSaveAs.Text = "Save As...";
-                MenuExit.Text = "Exit";
+            MenuEdit.Title = Loc("Edit", "Édition", "Editar");
+            MenuUndo.Text = Loc("Undo", "Annuler", "Deshacer");
+            MenuRedo.Text = Loc("Redo", "Rétablir", "Rehacer");
+            MenuCut.Text = Loc("Cut", "Couper", "Cortar");
+            MenuCopy.Text = Loc("Copy", "Copier", "Copiar");
+            MenuPaste.Text = Loc("Paste", "Coller", "Pegar");
+            MenuSelectAll.Text = Loc("Select All", "Tout sélectionner", "Seleccionar todo");
+            MenuView.Title = Loc("View", "Affichage", "Ver");
+            MenuPreview.Text = Loc("Markdown preview", "Aperçu Markdown", "Vista previa de Markdown");
+            ToolTipService.SetToolTip(PreviewToggleButton, Loc("Markdown preview", "Aperçu Markdown", "Vista previa de Markdown"));
 
-                MenuEdit.Title = "Edit";
-                MenuUndo.Text = "Undo";
-                MenuRedo.Text = "Redo";
-                MenuCut.Text = "Cut";
-                MenuCopy.Text = "Copy";
-                MenuPaste.Text = "Paste";
-                MenuSelectAll.Text = "Select All";
-                MenuView.Title = "View";
-                MenuPreview.Text = "Markdown preview";
-                ToolTipService.SetToolTip(PreviewToggleButton, "Markdown preview");
+            if (_contextUndo != null) _contextUndo.Text = Loc("Undo", "Annuler", "Deshacer");
+            if (_contextRedo != null) _contextRedo.Text = Loc("Redo", "Rétablir", "Rehacer");
+            if (_contextCut != null) _contextCut.Text = Loc("Cut", "Couper", "Cortar");
+            if (_contextCopy != null) _contextCopy.Text = Loc("Copy", "Copier", "Copiar");
+            if (_contextPaste != null) _contextPaste.Text = Loc("Paste", "Coller", "Pegar");
+            if (_contextSelectAll != null) _contextSelectAll.Text = Loc("Select All", "Tout sélectionner", "Seleccionar todo");
 
-                if (_contextUndo != null) _contextUndo.Text = "Undo";
-                if (_contextRedo != null) _contextRedo.Text = "Redo";
-                if (_contextCut != null) _contextCut.Text = "Cut";
-                if (_contextCopy != null) _contextCopy.Text = "Copy";
-                if (_contextPaste != null) _contextPaste.Text = "Paste";
-                if (_contextSelectAll != null) _contextSelectAll.Text = "Select All";
+            ToolTipService.SetToolTip(SettingsButton, Loc("Settings", "Paramètres", "Configuración"));
+            ToolTipService.SetToolTip(BackButton, Loc("Back", "Retour", "Atrás"));
+            SettingsTitleText.Text = Loc("Settings", "Paramètres", "Configuración");
 
-                ToolTipService.SetToolTip(SettingsButton, "Settings");
-                ToolTipService.SetToolTip(BackButton, "Back");
-                SettingsTitleText.Text = "Settings";
+            SectionAppearanceTitle.Text = Loc("Appearance", "Apparence", "Apariencia");
+            ThemeHeaderTitle.Text = Loc("App theme", "Thème de l'application", "Tema de la aplicación");
+            ThemeHeaderDesc.Text = Loc("Select which app theme to display in Skrib", "Choisissez le thème à afficher dans Skrib", "Elige el tema que se mostrará en Skrib");
+            ThemeLightComboText.Text = Loc("Light", "Clair", "Claro");
+            ThemeDarkComboText.Text = Loc("Dark", "Sombre", "Oscuro");
+            ThemeSystemComboText.Text = Loc("Use system theme", "Utiliser le thème du système", "Usar el tema del sistema");
+            BackdropHeaderTitle.Text = Loc("Background", "Arrière-plan", "Fondo");
+            BackdropHeaderDesc.Text = Loc("Choose the background shown in Skrib", "Choisissez l'arrière-plan affiché dans Skrib", "Elige el fondo que se mostrará en Skrib");
+            BackdropMicaComboText.Text = "Mica";
+            BackdropAcrylicComboText.Text = Loc("Acrylic", "Acrylique", "Acrílico");
 
-                SectionAppearanceTitle.Text = "Appearance";
-                ThemeHeaderTitle.Text = "App theme";
-                ThemeHeaderDesc.Text = "Select which app theme to display in Skrib";
-                ThemeLightComboText.Text = "Light";
-                ThemeDarkComboText.Text = "Dark";
-                ThemeSystemComboText.Text = "Use system theme";
-                BackdropHeaderTitle.Text = "Background";
-                BackdropHeaderDesc.Text = "Choose the background shown in Skrib";
-                BackdropMicaComboText.Text = "Mica";
-                BackdropAcrylicComboText.Text = "Acrylic";
+            LangHeaderTitle.Text = Loc("Language", "Langue", "Idioma");
+            LangHeaderDesc.Text = Loc("Choose application display language", "Choisissez la langue de l'application", "Elige el idioma de la aplicación");
+            LangFrComboText.Text = Loc("French (FR)", "Français (FR)", "Français (FR)");
+            LangEsComboText.Text = Loc("Spanish (ES)", "Español (ES)", "Español (ES)");
+            LangEnComboText.Text = "English (EN)";
+            LangSystemComboText.Text = Loc("System", "Système", "Sistema");
 
-                LangHeaderTitle.Text = "Language";
-                LangHeaderDesc.Text = "Choose application display language";
-                LangFrComboText.Text = "French (FR)";
-                LangSystemComboText.Text = "System";
-                LangEnComboText.Text = "English (EN)";
+            SectionEditorTitle.Text = Loc("Editor", "Éditeur", "Editor");
+            WordWrapTitle.Text = Loc("Word wrap", "Retour automatique à la ligne", "Ajuste de línea");
+            WordWrapDesc.Text = Loc("Wrap long lines of text to fit the window width", "Renvoyer automatiquement le texte à la ligne", "Ajusta las líneas largas de texto al ancho de la ventana");
+            EditorBgTitle.Text = Loc("Text area background", "Fond de la zone de texte", "Fondo del área de texto");
+            EditorBgDesc.Text = Loc("Show the app background behind the text", "Afficher l'arrière-plan de l'application derrière le texte", "Mostrar el fondo de la aplicación detrás del texto");
 
-                SectionEditorTitle.Text = "Editor";
-                WordWrapTitle.Text = "Word wrap";
-                WordWrapDesc.Text = "Wrap long lines of text to fit the window width";
-                EditorBgTitle.Text = "Text area background";
-                EditorBgDesc.Text = "Show the app background behind the text";
-
-                SectionAboutTitle.Text = "About this app";
-                AboutTitle.Text = "Skrib";
-                GitHubButtonText.Text = "GitHub";
-                RateButtonText.Text = "Rate";
-            }
-            else
-            {
-                MenuFile.Title = "Fichier";
-                MenuNew.Text = "Nouveau";
-                MenuOpen.Text = "Ouvrir...";
-                MenuSave.Text = "Enregistrer";
-                MenuSaveAs.Text = "Enregistrer sous...";
-                MenuExit.Text = "Quitter";
-
-                MenuEdit.Title = "Édition";
-                MenuUndo.Text = "Annuler";
-                MenuRedo.Text = "Rétablir";
-                MenuCut.Text = "Couper";
-                MenuCopy.Text = "Copier";
-                MenuPaste.Text = "Coller";
-                MenuSelectAll.Text = "Tout sélectionner";
-                MenuView.Title = "Affichage";
-                MenuPreview.Text = "Aperçu Markdown";
-                ToolTipService.SetToolTip(PreviewToggleButton, "Aperçu Markdown");
-
-                if (_contextUndo != null) _contextUndo.Text = "Annuler";
-                if (_contextRedo != null) _contextRedo.Text = "Rétablir";
-                if (_contextCut != null) _contextCut.Text = "Couper";
-                if (_contextCopy != null) _contextCopy.Text = "Copier";
-                if (_contextPaste != null) _contextPaste.Text = "Coller";
-                if (_contextSelectAll != null) _contextSelectAll.Text = "Tout sélectionner";
-
-                ToolTipService.SetToolTip(SettingsButton, "Paramètres");
-                ToolTipService.SetToolTip(BackButton, "Retour");
-                SettingsTitleText.Text = "Paramètres";
-
-                SectionAppearanceTitle.Text = "Apparence";
-                ThemeHeaderTitle.Text = "Thème de l'application";
-                ThemeHeaderDesc.Text = "Choisissez le thème à afficher dans Skrib";
-                ThemeLightComboText.Text = "Clair";
-                ThemeDarkComboText.Text = "Sombre";
-                ThemeSystemComboText.Text = "Utiliser le thème du système";
-                BackdropHeaderTitle.Text = "Arrière-plan";
-                BackdropHeaderDesc.Text = "Choisissez l'arrière-plan affiché dans Skrib";
-                BackdropMicaComboText.Text = "Mica";
-                BackdropAcrylicComboText.Text = "Acrylique";
-
-                LangHeaderTitle.Text = "Langue";
-                LangHeaderDesc.Text = "Choisissez la langue de l'application";
-                LangFrComboText.Text = "Français (FR)";
-                LangSystemComboText.Text = "Système";
-                LangEnComboText.Text = "English (EN)";
-
-                SectionEditorTitle.Text = "Éditeur";
-                WordWrapTitle.Text = "Retour automatique à la ligne";
-                WordWrapDesc.Text = "Renvoyer automatiquement le texte à la ligne";
-                EditorBgTitle.Text = "Fond de la zone de texte";
-                EditorBgDesc.Text = "Afficher l'arrière-plan de l'application derrière le texte";
-
-                SectionAboutTitle.Text = "À propos de cette application";
-                AboutTitle.Text = "Skrib";
-                GitHubButtonText.Text = "GitHub";
-                RateButtonText.Text = "Noter";
-            }
+            SectionAboutTitle.Text = Loc("About this app", "À propos de cette application", "Acerca de esta aplicación");
+            AboutTitle.Text = "Skrib";
+            GitHubButtonText.Text = "GitHub";
+            RateButtonText.Text = Loc("Rate", "Noter", "Valorar");
 
             UpdateAboutVersion();
             UpdateTitle();
@@ -696,8 +658,7 @@ namespace Skrib
         private void UpdateWordWrapState()
         {
             bool isOn = WordWrapToggle != null && WordWrapToggle.IsOn;
-            bool isEn = _currentLang == "en";
-            WordWrapStateText.Text = isOn ? (isEn ? "On" : "Activé") : (isEn ? "Off" : "Désactivé");
+            WordWrapStateText.Text = isOn ? Loc("On", "Activé", "Activado") : Loc("Off", "Désactivé", "Desactivado");
         }
 
 
@@ -834,13 +795,12 @@ namespace Skrib
         private void UpdateEditorBgState()
         {
             bool isOn = EditorBgToggle != null && EditorBgToggle.IsOn;
-            bool isEn = _currentLang == "en";
-            EditorBgStateText.Text = isOn ? (isEn ? "On" : "Activé") : (isEn ? "Off" : "Désactivé");
+            EditorBgStateText.Text = isOn ? Loc("On", "Activé", "Activado") : Loc("Off", "Désactivé", "Desactivado");
         }
         private void UpdateTitle()
         {
-            var untitled = _currentLang == "en" ? "Untitled" : "Sans titre";
-            var ready = _currentLang == "en" ? "Ready" : "Prêt";
+            var untitled = Loc("Untitled", "Sans titre", "Sin título");
+            var ready = Loc("Ready", "Prêt", "Listo");
             var name = _currentFile != null ? _currentFile.Name : untitled;
             var dirtyMark = _isDirty ? "*" : "";
             this.Title = $"Skrib - {name}{dirtyMark}";
@@ -930,10 +890,9 @@ namespace Skrib
                 }
             }
             int col = pos - lastBreak;
-            bool isEn = _currentLang == "en";
-            string countLabel = isEn ? "chars" : "caractères";
+            string countLabel = Loc("chars", "caractères", "caracteres");
             if (_showMarkdownPreview)
-                CaretInfoText.Text = (isEn ? "Preview | " : "Aperçu | ") + text.Length + " " + countLabel;
+                CaretInfoText.Text = Loc("Preview | ", "Aperçu | ", "Vista previa | ") + text.Length + " " + countLabel;
             else
                 CaretInfoText.Text = $"Ln {line}, Col {col} | {text.Length} {countLabel}";
         }
@@ -971,24 +930,24 @@ namespace Skrib
                     }
                     catch (Exception ex)
                     {
-                        await ShowErrorAsync(_currentLang == "en" ? "Unable to read file" : "Impossible de lire le fichier", ex.Message);
+                        await ShowErrorAsync(Loc("Unable to read file", "Impossible de lire le fichier", "No se puede leer el archivo"), ex.Message);
                     }
                 }
             }
             catch (Exception ex)
             {
-                await ShowErrorAsync(_currentLang == "en" ? "Open error" : "Erreur lors de l'ouverture", ex.Message);
+                await ShowErrorAsync(Loc("Open error", "Erreur lors de l'ouverture", "Error al abrir"), ex.Message);
             }
         }
 
         private async void SaveFile_Click(object sender, RoutedEventArgs e)
         {
-            try { await SaveAsync(); } catch (Exception ex) { await ShowErrorAsync(_currentLang == "en" ? "Save error" : "Erreur lors de l'enregistrement", ex.Message); }
+            try { await SaveAsync(); } catch (Exception ex) { await ShowErrorAsync(Loc("Save error", "Erreur lors de l'enregistrement", "Error al guardar"), ex.Message); }
         }
 
         private async void SaveAsFile_Click(object sender, RoutedEventArgs e)
         {
-            try { await SaveAsAsync(); } catch (Exception ex) { await ShowErrorAsync(_currentLang == "en" ? "Save error" : "Erreur lors de l'enregistrement", ex.Message); }
+            try { await SaveAsAsync(); } catch (Exception ex) { await ShowErrorAsync(Loc("Save error", "Erreur lors de l'enregistrement", "Error al guardar"), ex.Message); }
         }
 
         private async Task<bool> SaveAsync()
@@ -1022,9 +981,9 @@ namespace Skrib
             try { InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this)); } catch { }
             picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
             picker.DefaultFileExtension = ".txt";
-            var untitled = _currentLang == "en" ? "Untitled" : "Sans titre";
-            var txtLabel = _currentLang == "en" ? "Text Document" : "Document texte (.txt)";
-            var mdLabel = _currentLang == "en" ? "Markdown" : "Markdown (.md)";
+            var untitled = Loc("Untitled", "Sans titre", "Sin título");
+            var txtLabel = Loc("Text Document", "Document texte (.txt)", "Documento de texto (.txt)");
+            var mdLabel = Loc("Markdown", "Markdown (.md)", "Markdown (.md)");
             picker.SuggestedFileName = _currentFile != null ? Path.GetFileNameWithoutExtension(_currentFile.Name) : untitled;
             picker.FileTypeChoices.Clear();
             picker.FileTypeChoices.Add(txtLabel, new System.Collections.Generic.List<string>() { ".txt" });
@@ -1041,14 +1000,13 @@ namespace Skrib
         private async Task<bool> AskSaveIfNeededAsync()
         {
             if (!_isDirty) return true;
-            bool isEn = _currentLang == "en";
             var dialog = new ContentDialog
             {
-                Title = isEn ? "Save changes?" : "Enregistrer les modifications ?",
-                Content = isEn ? "The document has been modified. Do you want to save it?" : "Le document a été modifié. Voulez-vous l'enregistrer ?",
-                PrimaryButtonText = isEn ? "Save" : "Enregistrer",
-                SecondaryButtonText = isEn ? "Don't save" : "Ne pas enregistrer",
-                CloseButtonText = isEn ? "Cancel" : "Annuler",
+                Title = Loc("Save changes?", "Enregistrer les modifications ?", "¿Guardar los cambios?"),
+                Content = Loc("The document has been modified. Do you want to save it?", "Le document a été modifié. Voulez-vous l'enregistrer ?", "El documento se ha modificado. ¿Quieres guardarlo?"),
+                PrimaryButtonText = Loc("Save", "Enregistrer", "Guardar"),
+                SecondaryButtonText = Loc("Don't save", "Ne pas enregistrer", "No guardar"),
+                CloseButtonText = Loc("Cancel", "Annuler", "Cancelar"),
                 XamlRoot = this.Content.XamlRoot
             };
             var result = await dialog.ShowAsync();
@@ -1273,7 +1231,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                await ShowErrorAsync(_currentLang == "en" ? "Unable to read file" : "Impossible de lire le fichier", ex.Message);
+                await ShowErrorAsync(Loc("Unable to read file", "Impossible de lire le fichier", "No se puede leer el archivo"), ex.Message);
             }
         }
 

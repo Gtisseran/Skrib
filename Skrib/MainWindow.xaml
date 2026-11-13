@@ -425,6 +425,9 @@
                                         <ComboBoxItem Tag="fr">
                                             <TextBlock x:Name="LangFrComboText" Text="Français (FR)" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                         </ComboBoxItem>
+                                        <ComboBoxItem Tag="es">
+                                            <TextBlock x:Name="LangEsComboText" Text="Español (ES)" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        </ComboBoxItem>
                                         <ComboBoxItem Tag="en">
                                             <TextBlock x:Name="LangEnComboText" Text="English (EN)" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                         </ComboBoxItem>
