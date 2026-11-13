@@ -9,7 +9,7 @@ It is designed for quick note-taking and simple editing on Windows 10 and Window
 - optional word wrap and editor transparency
 - light, dark, and system theme options
 - Mica and Acrylic window backgrounds
-- French and English interface languages
+- French, English and Spanish interface languages
 - Microsoft Store rating link
 
 Skrib is intended to be a fast and distraction-free writing tool for everyday use.
