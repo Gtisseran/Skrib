@@ -22,6 +22,8 @@ namespace Skrib
         private bool _showMarkdownPreview;
         // The preview shell (styling + message listener) is loaded into the WebView only once.
         private bool _previewShellLoaded;
+        // Shared environment for the preview WebView (tracking prevention disabled).
+        private Microsoft.Web.WebView2.Core.CoreWebView2Environment? _previewEnvironment;
         private readonly System.Collections.Generic.Dictionary<string, Microsoft.UI.Xaml.Media.Brush?> _origEditorBgBrushes = new();
         private string _currentLang = "fr";
         private bool _isInitialized = false;
@@ -39,6 +41,9 @@ namespace Skrib
         public MainWindow()
         {
             this.InitializeComponent();
+            // The window backdrop must show through the preview: the XAML attribute is not
+            // reliably honored on every Windows App SDK build, so set it in code.
+            MarkdownWebView.DefaultBackgroundColor = Microsoft.UI.Colors.Transparent;
             ConfigureCustomTitleBar();
             InitializeContextMenu();
             SetMinimumWindowSize();
@@ -1196,9 +1201,27 @@ namespace Skrib
                 if (PreviewToggleButton != null) PreviewToggleButton.IsChecked = show;
                 // The edit menu targets the hidden editor, so disable it while previewing.
                 if (MenuEdit != null) MenuEdit.IsEnabled = !show;
+                if (!show) SuspendPreview();
             }
             catch { }
             UpdateCaretInfo();
+        }
+
+        // Frees most of the WebView memory while the preview is hidden: a suspended
+        // WebView keeps only a small footprint, and Resume() on the next show restores it.
+        private void SuspendPreview()
+        {
+            try
+            {
+                if (MarkdownWebView?.CoreWebView2 != null && !MarkdownWebView.CoreWebView2.IsSuspended)
+                {
+                    _ = MarkdownWebView.CoreWebView2.TrySuspendAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error suspending preview: {ex.Message}");
+            }
         }
 
         private void MenuPreview_Click(object sender, RoutedEventArgs e)
@@ -1216,9 +1239,36 @@ namespace Skrib
         {
             try
             {
-                await MarkdownWebView.EnsureCoreWebView2Async();
+                // A dedicated environment: tracking prevention is a per-environment browser
+                // feature whose cost is useless for a local, offline-rendered document.
+                if (_previewEnvironment == null)
+                {
+                    _previewEnvironment = await Microsoft.Web.WebView2.Core.CoreWebView2Environment.CreateWithOptionsAsync(
+                        null, null,
+                        new Microsoft.Web.WebView2.Core.CoreWebView2EnvironmentOptions
+                        {
+                            EnableTrackingPrevention = false
+                        });
+                }
+                await MarkdownWebView.EnsureCoreWebView2Async(_previewEnvironment);
+                if (MarkdownWebView.CoreWebView2.IsSuspended)
+                {
+                    MarkdownWebView.CoreWebView2.Resume();
+                }
+                // Tell the browser runtime to trim aggressively: the preview only renders a
+                // static local document, so it does not need the default memory headroom.
+                try
+                {
+                    MarkdownWebView.CoreWebView2.MemoryUsageTargetLevel
+                        = Microsoft.Web.WebView2.Core.CoreWebView2MemoryUsageTargetLevel.Low;
+                }
+                catch (Exception) { // Older WebView2 runtime without the API: keep the default.
+                }
                 if (!_previewShellLoaded)
                 {
+                    var settings = MarkdownWebView.CoreWebView2.Settings;
+                    settings.AreDevToolsEnabled = false;
+                    settings.IsBuiltInErrorPageEnabled = false;
                     MarkdownWebView.CoreWebView2.NavigateToString(MarkdownPreviewRenderer.BuildShellHtml());
                     _previewShellLoaded = true;
                 }

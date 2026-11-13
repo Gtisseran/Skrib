@@ -63,7 +63,8 @@ namespace Skrib
   html, body { background: transparent; }
   body {
     margin: 0;
-    padding: 0;
+    /* Matches the 16px padding the editor area keeps on every side. */
+    padding: 16px;
     font-family: "Segoe UI", "Segoe UI Variable Text", sans-serif;
     font-size: 15px;
     line-height: 1.6;
