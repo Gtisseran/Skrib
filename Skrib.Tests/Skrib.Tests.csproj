@@ -20,12 +20,13 @@
   </ItemGroup>
 
   <!--
-    LanguageHelper is plain C# with no WinUI dependency, so the real source file is compiled
-    straight into the test assembly: no Windows App SDK, no project reference, and the tests
-    exercise the exact code that ships in the app.
+    LanguageHelper and SettingsDefaults are plain C# with no WinUI dependency, so the real
+    source files are compiled straight into the test assembly: no Windows App SDK, no project
+    reference, and the tests exercise the exact code that ships in the app.
   -->
   <ItemGroup>
     <Compile Include="..\Skrib\LanguageHelper.cs" Link="LanguageHelper.cs" />
+    <Compile Include="..\Skrib\SettingsDefaults.cs" Link="SettingsDefaults.cs" />
   </ItemGroup>
 
   <!-- Lets the translation coverage tests locate the sources they inspect. -->
