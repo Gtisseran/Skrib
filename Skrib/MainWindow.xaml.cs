@@ -20,6 +20,8 @@ namespace Skrib
         private StorageFile? _currentFile;
         private bool _isDirty;
         private bool _showMarkdownPreview;
+        // The preview shell (styling + message listener) is loaded into the WebView only once.
+        private bool _previewShellLoaded;
         private readonly System.Collections.Generic.Dictionary<string, Microsoft.UI.Xaml.Media.Brush?> _origEditorBgBrushes = new();
         private string _currentLang = "fr";
         private bool _isInitialized = false;
@@ -66,6 +68,10 @@ namespace Skrib
                     try { ApplyEditorBg(EditorBgToggle != null && EditorBgToggle.IsOn, save: false); } catch (Exception ex)
                     {
                         System.Diagnostics.Debug.Write($"Error in theme change handler: {ex.Message}");
+                    }
+                    if (_showMarkdownPreview)
+                    {
+                        SendPreviewUpdate();
                     }
                 };
                 if (root.FindName("AppTitleBar") is Border titleBar)
@@ -845,7 +851,7 @@ namespace Skrib
             _isDirty = false;
             if (_showMarkdownPreview)
             {
-                if (IsMarkdownFile()) MarkdownPreview.Text = text;
+                if (IsMarkdownFile()) SendPreviewUpdate();
                 else SetMarkdownPreview(false);
             }
             UpdateTitle();
@@ -1183,7 +1189,7 @@ namespace Skrib
             _showMarkdownPreview = show;
             try
             {
-                if (show) MarkdownPreview.Text = Editor.Text ?? string.Empty;
+                if (show) _ = ShowPreviewAsync();
                 Editor.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
                 MarkdownPreviewHost.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
                 if (MenuPreview != null) MenuPreview.IsChecked = show;
@@ -1205,18 +1211,84 @@ namespace Skrib
             if (sender is ToggleButton button) SetMarkdownPreview(button.IsChecked == true);
         }
 
-        // Opens rendered Markdown links in the default browser.
-        private async void MarkdownPreview_LinkClicked(object sender, CommunityToolkit.WinUI.UI.Controls.LinkClickedEventArgs e)
+        // Loads the preview shell once, then pushes the rendered Markdown into it.
+        private async System.Threading.Tasks.Task ShowPreviewAsync()
         {
             try
             {
-                if (!string.IsNullOrWhiteSpace(e.Link)
-                    && Uri.TryCreate(e.Link, UriKind.Absolute, out var uri))
+                await MarkdownWebView.EnsureCoreWebView2Async();
+                if (!_previewShellLoaded)
                 {
-                    await Launcher.LaunchUriAsync(uri);
+                    MarkdownWebView.CoreWebView2.NavigateToString(MarkdownPreviewRenderer.BuildShellHtml());
+                    _previewShellLoaded = true;
                 }
+                SendPreviewUpdate();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error showing Markdown preview: {ex.Message}");
+            }
+        }
+
+        // Sends the current document (rendered HTML + theme colors) to the preview shell.
+        private void SendPreviewUpdate()
+        {
+            if (!_previewShellLoaded) return;
+            try
+            {
+                bool dark = (this.Content as FrameworkElement)?.ActualTheme == ElementTheme.Dark;
+                var message = new
+                {
+                    type = "render",
+                    html = MarkdownPreviewRenderer.ToHtmlFragment(Editor.Text ?? string.Empty),
+                    dark,
+                    accent = GetAccentHex()
+                };
+                MarkdownWebView.CoreWebView2.PostWebMessageAsJson(System.Text.Json.JsonSerializer.Serialize(message));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error updating Markdown preview: {ex.Message}");
+            }
+        }
+
+        // Accent color of the current theme, as #RRGGBB (links, quote borders).
+        // UISettings always resolves the system accent; the constant is a last-resort fallback.
+        private string GetAccentHex()
+        {
+            try
+            {
+                var accent = new Windows.UI.ViewManagement.UISettings()
+                    .GetColorValue(Windows.UI.ViewManagement.UIColorType.Accent);
+                return $"#{accent.R:X2}{accent.G:X2}{accent.B:X2}";
             }
             catch { }
+            return "#0067C0";
+        }
+
+        // Links clicked in the preview open in the default browser; only the data: shell
+        // document itself is allowed to navigate inside the WebView.
+        private async void MarkdownWebView_NavigationStarting(object sender, Microsoft.Web.WebView2.Core.CoreWebView2NavigationStartingEventArgs e)
+        {
+            string uri = e.Uri ?? string.Empty;
+            if (uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                || uri.StartsWith("#", StringComparison.Ordinal))
+            {
+                return;
+            }
+            e.Cancel = true;
+            try
+            {
+                if (Uri.TryCreate(uri, UriKind.Absolute, out var target)
+                    && (target.Scheme == "http" || target.Scheme == "https" || target.Scheme == "mailto"))
+                {
+                    await Launcher.LaunchUriAsync(target);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error opening link from preview: {ex.Message}");
+            }
         }
 
         #endregion
