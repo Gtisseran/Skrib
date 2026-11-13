@@ -37,7 +37,8 @@
                 <TextBlock Grid.Column="1" x:Name="WindowTitleStatus"
                            Text="Sans titre"
                            FontSize="12"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                           Opacity="0.9"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis" />
@@ -171,7 +172,7 @@
                 </StackPanel>
             </Grid>
 
-            <TextBox x:Name="Editor" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="14" TextChanged="Editor_TextChanged" SelectionChanged="Editor_SelectionChanged" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+            <TextBox x:Name="Editor" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="14" PlaceholderText="Commencez à écrire…" TextChanged="Editor_TextChanged" SelectionChanged="Editor_SelectionChanged" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto">
                 <TextBox.Resources>
                     <ResourceDictionary>
                         <ResourceDictionary.ThemeDictionaries>
@@ -218,7 +219,7 @@
                 </ScrollViewer>
             </Border>
 
-            <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Padding="10,4">
+            <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" Padding="10,4">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />

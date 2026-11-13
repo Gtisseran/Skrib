@@ -431,7 +431,7 @@ namespace Skrib
                 if (v == "Acrylic") return "Acrylic";
             }
             catch { }
-            return "Mica";
+            return SettingsDefaults.Backdrop;
         }
 
         // Switches the window backdrop at runtime (Mica default, like Windows Notepad).
@@ -614,6 +614,9 @@ namespace Skrib
             EditorBgTitle.Text = Loc("Text area background", "Fond de la zone de texte", "Fondo del área de texto");
             EditorBgDesc.Text = Loc("Show the app background behind the text", "Afficher l'arrière-plan de l'application derrière le texte", "Mostrar el fondo de la aplicación detrás del texto");
 
+            // The editor welcome message is only visible while the document is empty.
+            Editor.PlaceholderText = Loc("Start writing…", "Commencez à écrire…", "Empieza a escribir…");
+
             SectionAboutTitle.Text = Loc("About this app", "À propos de cette application", "Acerca de esta aplicación");
             AboutTitle.Text = "Skrib";
             GitHubButtonText.Text = "GitHub";
@@ -663,18 +666,20 @@ namespace Skrib
 
 
         // Transparent mode lets the window backdrop show through the text area.
+        // On first run (no settings file yet) the default is the opaque editor
+        // background, which is what the XAML theme dictionaries already provide.
         private void ApplySavedEditorBg()
         {
+            bool transparent = SettingsDefaults.EditorTransparent;
             try
             {
                 var v = ApplicationData.Current.LocalSettings.Values["EditorTransparent"];
-                if (v is bool on)
-                {
-                    EditorBgToggle.IsOn = on;
-                    ApplyEditorBg(on, save: false);
-                }
+                if (v is bool on) transparent = on;
             }
             catch { }
+
+            EditorBgToggle.IsOn = transparent;
+            ApplyEditorBg(transparent, save: false);
         }
 
         private void EditorBgToggle_Toggled(object sender, RoutedEventArgs e)

@@ -69,6 +69,42 @@ public class TranslationCoverageTests
             "Langues absentes du sélecteur : " + string.Join(", ", missing));
     }
 
+    /// <summary>
+    /// The editor welcome message must exist in every supported language and be wired
+    /// to the TextBox placeholder, otherwise an untranslated string leaks into the UI.
+    /// </summary>
+    [Fact]
+    public void EditorPlaceholder_IsLocalizedForEveryLanguage()
+    {
+        var xaml = ReadSource(Path.Combine("Skrib", "MainWindow.xaml"));
+        Assert.True(xaml.Contains("PlaceholderText=", StringComparison.Ordinal),
+            "Le TextBox de l'éditeur ne définit pas PlaceholderText.");
+
+        var source = ReadSource(Path.Combine("Skrib", "MainWindow.xaml.cs"));
+        var calls = ParseLocCalls(source);
+
+        var placeholders = calls
+            .Where(call => call.Any(arg => arg.Contains("écrire", StringComparison.Ordinal)
+                                       || arg.Contains("writing", StringComparison.Ordinal)
+                                       || arg.Contains("escribir", StringComparison.Ordinal)))
+            .ToList();
+
+        Assert.True(placeholders.Count > 0,
+            "Aucun texte d'accueil localisé trouvé dans l'éditeur.");
+
+        foreach (var call in placeholders)
+        {
+            Assert.Equal(LanguageHelper.Supported.Length, call.Length);
+        }
+
+        var values = placeholders.SelectMany(call => call).Select(arg => arg.Trim('"')).ToList();
+        foreach (var expected in new[] { "Start writing…", "Commencez à écrire…", "Empieza a escribir…" })
+        {
+            Assert.True(values.Contains(expected, StringComparer.Ordinal),
+                $"Texte d'accueil manquant : {expected}");
+        }
+    }
+
     [Fact]
     public void EverySupportedLanguage_HasALabelTextBlockInThePicker()
     {
