@@ -4,7 +4,6 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Skrib"
-    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
@@ -191,32 +190,20 @@
                 </TextBox.Resources>
             </TextBox>
 
+            <!--
+                The preview renders Markdown in a WebView2: unlike MarkdownTextBlock, which
+                emits one TextBlock per paragraph (selection scoped to a single block, so
+                Ctrl+A and drag selection never crossed paragraphs), a browser view gives
+                normal text selection over the whole document.
+            -->
             <Border x:Name="MarkdownPreviewHost" Grid.Row="1" Visibility="Collapsed"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="8">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="16">
-                    <controls:MarkdownTextBlock x:Name="MarkdownPreview"
-                        HorizontalAlignment="Stretch"
-                        FontSize="15" Background="Transparent" TextWrapping="Wrap"
-                        IsTextSelectionEnabled="True" UseSyntaxHighlighting="True" WrapCodeBlock="True"
-                        LinkClicked="MarkdownPreview_LinkClicked" LinkForeground="{ThemeResource AccentTextFillColorPrimaryBrush}"
-                        Header1FontSize="26" Header1FontWeight="SemiBold" Header1Margin="0,24,0,10"
-                        Header2FontSize="20" Header2FontWeight="SemiBold" Header2Margin="0,20,0,8"
-                        Header3FontSize="17" Header3FontWeight="SemiBold" Header3Margin="0,16,0,6"
-                        Header4FontSize="15" Header4FontWeight="SemiBold" Header4Margin="0,12,0,5"
-                        Header5FontSize="13" Header5FontWeight="SemiBold" Header5Margin="0,10,0,4"
-                        Header6FontSize="13" Header6FontWeight="SemiBold" Header6Margin="0,10,0,4"
-                        ParagraphMargin="0,0,0,12" ParagraphLineHeight="24"
-                        ListMargin="0,0,0,12" ListGutterWidth="24" ListBulletSpacing="8"
-                        QuoteBackground="{ThemeResource SubtleFillColorSecondaryBrush}" QuoteBorderBrush="{ThemeResource AccentFillColorDefaultBrush}" QuoteBorderThickness="2,0,0,0" QuoteForeground="{ThemeResource TextFillColorSecondaryBrush}" QuoteMargin="0,0,0,12" QuotePadding="10,6,10,6"
-                        CodeFontFamily="Consolas" CodeBackground="{ThemeResource SubtleFillColorSecondaryBrush}" CodeBorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" CodeBorderThickness="0" CodeMargin="0,0,0,12" CodePadding="12"
-                        InlineCodeFontFamily="Consolas" InlineCodeBackground="{ThemeResource SubtleFillColorSecondaryBrush}" InlineCodeBorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" InlineCodeBorderThickness="0" InlineCodeMargin="0,1,0,1" InlineCodePadding="4,1,4,2"
-                        TableBorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" TableBorderThickness="1" TableCellPadding="8,6" TableMargin="0,0,0,12"
-                        HorizontalRuleBrush="{ThemeResource DividerStrokeColorDefaultBrush}" HorizontalRuleThickness="1" HorizontalRuleMargin="20,20,20,20"
-                        ImageMaxWidth="760" />
-                </ScrollViewer>
+                <WebView2 x:Name="MarkdownWebView"
+                          NavigationStarting="MarkdownWebView_NavigationStarting"
+                          DefaultBackgroundColor="Transparent" />
             </Border>
 
             <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" Padding="10,4">
