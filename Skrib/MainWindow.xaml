@@ -202,8 +202,7 @@
                     BorderThickness="1"
                     CornerRadius="8">
                 <WebView2 x:Name="MarkdownWebView"
-                          NavigationStarting="MarkdownWebView_NavigationStarting"
-                          DefaultBackgroundColor="Transparent" />
+                          NavigationStarting="MarkdownWebView_NavigationStarting" />
             </Border>
 
             <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" Padding="10,4">
