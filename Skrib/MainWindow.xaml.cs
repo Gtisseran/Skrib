@@ -39,6 +39,8 @@ namespace Skrib
         private double _smoothHorizontalTarget;
         private bool _smoothVerticalAnimating;
         private bool _smoothHorizontalAnimating;
+        private bool _closeConfirmed;
+        private bool _closeDialogOpen;
 
         public MainWindow()
         {
@@ -47,6 +49,7 @@ namespace Skrib
             InitializeContextMenu();
             SetMinimumWindowSize();
             SetWindowIcon();
+            RegisterWindowClosing();
             ApplySavedTheme();
             ApplySavedBackdrop();
             ApplySavedLanguage();
@@ -280,6 +283,51 @@ namespace Skrib
                 // Log root cause for debugging
                 System.Diagnostics.Debug.Write($"Error in SetWindowIcon: {ex.Message}");
             }
+        }
+
+        // Intercepts the window close (title bar X, Alt+F4, taskbar close) so unsaved
+        // changes get the same save prompt as the File menu Exit/New/Open paths.
+        private void RegisterWindowClosing()
+        {
+            var hwnd = WindowNative.GetWindowHandle(this);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+            var appWindow = AppWindow.GetFromWindowId(windowId);
+            if (appWindow != null)
+            {
+                appWindow.Closing += AppWindow_Closing;
+            }
+        }
+
+        // The Closing event is not awaitable: cancel it synchronously, run the save
+        // prompt, then close for real once confirmed. The flags keep a second close
+        // event (fires again when Close() runs, or when the user closes during the
+        // prompt) from opening a second dialog or cancelling the confirmed close.
+        private async void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
+        {
+            if (_closeConfirmed || !_isDirty) return;
+
+            args.Cancel = true;
+            if (_closeDialogOpen) return;
+            _closeDialogOpen = true;
+            bool proceed;
+            try
+            {
+                proceed = await AskSaveIfNeededAsync();
+            }
+            catch (Exception ex)
+            {
+                // A failed save must never close the window with changes lost.
+                System.Diagnostics.Debug.Write($"Error saving on window close: {ex.Message}");
+                proceed = false;
+            }
+            finally
+            {
+                _closeDialogOpen = false;
+            }
+
+            if (!proceed) return;
+            _closeConfirmed = true;
+            Close();
         }
 
         private void UpdateAboutVersion()
@@ -1177,6 +1225,8 @@ namespace Skrib
         private async Task ExitAsync()
         {
             if (!await AskSaveIfNeededAsync()) return;
+            // The user already answered the save prompt: don't let the exit re-run it.
+            _closeConfirmed = true;
             Application.Current.Exit();
         }
 
