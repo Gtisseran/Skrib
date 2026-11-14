@@ -179,13 +179,91 @@
                                 <SolidColorBrush x:Key="TextControlBackground" Color="#FFFFFF"/>
                                 <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#FFFFFF"/>
                                 <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#FFFFFF"/>
+                                <SolidColorBrush x:Key="EditorScrollThumbFill" Color="#59202020"/>
                             </ResourceDictionary>
                             <ResourceDictionary x:Key="Dark">
                                 <SolidColorBrush x:Key="TextControlBackground" Color="#202020"/>
                                 <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#202020"/>
                                 <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#202020"/>
+                                <SolidColorBrush x:Key="EditorScrollThumbFill" Color="#66DADADA"/>
                             </ResourceDictionary>
                         </ResourceDictionary.ThemeDictionaries>
+                        <!--
+                            Minimal scrollbar: a thin rounded thumb over an invisible track.
+                            The default Fluent scrollbar expands to a wide track with
+                            hit-areas; this template keeps a quiet 8px bar at all times.
+                            The named parts (Root, *TrackRect, *Thumb, *LargeIncrease,
+                            *LargeDecrease) are the ScrollBar template contract: the
+                            control positions and sizes them itself.
+                        -->
+                        <Style x:Key="EditorScrollRepeatButtonStyle" TargetType="RepeatButton">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="RepeatButton">
+                                        <Rectangle Fill="Transparent" />
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                        <Style x:Key="EditorScrollBarThumbStyle" TargetType="Thumb">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Thumb">
+                                        <Rectangle Fill="{ThemeResource EditorScrollThumbFill}" RadiusX="4" RadiusY="4" Margin="2" />
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                        <Style TargetType="ScrollBar">
+                            <Setter Property="MinWidth" Value="8" />
+                            <Setter Property="MinHeight" Value="8" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ScrollBar">
+                                        <Grid x:Name="Root" Background="Transparent">
+                                            <VisualStateManager.VisualStateGroups>
+                                                <VisualStateGroup x:Name="Orientation">
+                                                    <VisualState x:Name="Vertical">
+                                                        <VisualState.Setters>
+                                                            <Setter Target="HorizontalTrackRect.Visibility" Value="Collapsed" />
+                                                            <Setter Target="HorizontalThumb.Visibility" Value="Collapsed" />
+                                                            <Setter Target="HorizontalLargeDecrease.Visibility" Value="Collapsed" />
+                                                            <Setter Target="HorizontalLargeIncrease.Visibility" Value="Collapsed" />
+                                                            <Setter Target="VerticalTrackRect.Visibility" Value="Visible" />
+                                                            <Setter Target="VerticalThumb.Visibility" Value="Visible" />
+                                                            <Setter Target="VerticalLargeDecrease.Visibility" Value="Visible" />
+                                                            <Setter Target="VerticalLargeIncrease.Visibility" Value="Visible" />
+                                                        </VisualState.Setters>
+                                                    </VisualState>
+                                                    <VisualState x:Name="Horizontal">
+                                                        <VisualState.Setters>
+                                                            <Setter Target="VerticalTrackRect.Visibility" Value="Collapsed" />
+                                                            <Setter Target="VerticalThumb.Visibility" Value="Collapsed" />
+                                                            <Setter Target="VerticalLargeDecrease.Visibility" Value="Collapsed" />
+                                                            <Setter Target="VerticalLargeIncrease.Visibility" Value="Collapsed" />
+                                                            <Setter Target="HorizontalTrackRect.Visibility" Value="Visible" />
+                                                            <Setter Target="HorizontalThumb.Visibility" Value="Visible" />
+                                                            <Setter Target="HorizontalLargeDecrease.Visibility" Value="Visible" />
+                                                            <Setter Target="HorizontalLargeIncrease.Visibility" Value="Visible" />
+                                                        </VisualState.Setters>
+                                                    </VisualState>
+                                                </VisualStateGroup>
+                                            </VisualStateManager.VisualStateGroups>
+                                            <!-- Vertical parts (default orientation) -->
+                                            <Rectangle x:Name="VerticalTrackRect" Fill="Transparent" />
+                                            <RepeatButton x:Name="VerticalLargeDecrease" Style="{StaticResource EditorScrollRepeatButtonStyle}" IsTabStop="False" />
+                                            <Thumb x:Name="VerticalThumb" Style="{StaticResource EditorScrollBarThumbStyle}" />
+                                            <RepeatButton x:Name="VerticalLargeIncrease" Style="{StaticResource EditorScrollRepeatButtonStyle}" IsTabStop="False" />
+                                            <!-- Horizontal parts (collapsed until the Horizontal state) -->
+                                            <Rectangle x:Name="HorizontalTrackRect" Fill="Transparent" Visibility="Collapsed" />
+                                            <RepeatButton x:Name="HorizontalLargeDecrease" Style="{StaticResource EditorScrollRepeatButtonStyle}" IsTabStop="False" Visibility="Collapsed" />
+                                            <Thumb x:Name="HorizontalThumb" Style="{StaticResource EditorScrollBarThumbStyle}" Visibility="Collapsed" />
+                                            <RepeatButton x:Name="HorizontalLargeIncrease" Style="{StaticResource EditorScrollRepeatButtonStyle}" IsTabStop="False" Visibility="Collapsed" />
+                                        </Grid>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
                     </ResourceDictionary>
                 </TextBox.Resources>
             </TextBox>
