@@ -285,7 +285,11 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBox x:Name="SearchTextBox" Grid.Column="0" MinWidth="200" MaxWidth="400"
+                        <!-- Stretch without MaxWidth: a Stretch element capped by MaxWidth
+                             would center itself, which misaligned the two rows (see the
+                             replace row, whose wider buttons kept it under the cap). -->
+                        <TextBox x:Name="SearchTextBox" Grid.Column="0" MinWidth="200"
+                                 HorizontalAlignment="Stretch"
                                  PlaceholderText="Trouver..."
                                  KeyDown="SearchTextBox_KeyDown" TextChanged="SearchTextBox_TextChanged" />
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
@@ -311,7 +315,8 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBox x:Name="ReplaceTextBox" Grid.Column="0" MinWidth="200" MaxWidth="400"
+                        <TextBox x:Name="ReplaceTextBox" Grid.Column="0" MinWidth="200"
+                                 HorizontalAlignment="Stretch"
                                  PlaceholderText="Remplacer par..."
                                  KeyDown="ReplaceTextBox_KeyDown" />
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
