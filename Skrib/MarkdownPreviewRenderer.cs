@@ -59,12 +59,28 @@ namespace Skrib
     --border: rgba(255, 255, 255, 0.10);
     --accent: #4CC2FF;
   }
-  /* The window backdrop (host Border) shows through: never paint a body background. */
+  /* The window backdrop (host Border) shows through unless a render message
+     sets an explicit body background for opaque editor mode. */
   html, body { background: transparent; }
+  /* Minimalist scrollbar: thin, quiet thumb, invisible track. */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(128, 128, 128, 0.35) transparent;
+  }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(128, 128, 128, 0.35);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, 0.55); }
+  ::-webkit-scrollbar-corner { background: transparent; }
   body {
     margin: 0;
-    /* Matches the 16px padding the editor area keeps on every side. */
+    /* Matches the 16px padding the editor area keeps on every side. The text
+       always wraps, so there is never a horizontal scrollbar to show. */
     padding: 16px;
+    overflow-x: hidden;
     font-family: "Segoe UI", "Segoe UI Variable Text", sans-serif;
     font-size: 15px;
     line-height: 1.6;
@@ -150,6 +166,8 @@ namespace Skrib
     if (!d || d.type !== 'render') return;
     document.documentElement.classList.toggle('dark', !!d.dark);
     document.documentElement.style.setProperty('--accent', d.accent || '');
+    // Explicit opaque background from the app, or transparent to show the backdrop.
+    document.body.style.background = d.bg || 'transparent';
     document.getElementById('content').innerHTML = d.html || '';
   });
 </script>
