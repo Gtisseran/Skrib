@@ -20,12 +20,6 @@ namespace Skrib
         private StorageFile? _currentFile;
         private bool _isDirty;
         private bool _showMarkdownPreview;
-        // The preview shell (styling + message listener) is loaded into the WebView only once.
-        private bool _previewShellLoaded;
-        // Shared environment for the preview WebView (tracking prevention disabled).
-        private Microsoft.Web.WebView2.Core.CoreWebView2Environment? _previewEnvironment;
-        // Background color baked into the preview controller at creation time.
-        private Windows.UI.Color? _previewBgColor;
         private readonly System.Collections.Generic.Dictionary<string, Microsoft.UI.Xaml.Media.Brush?> _origEditorBgBrushes = new();
         private string _currentLang = "fr";
         private bool _isInitialized = false;
@@ -43,9 +37,6 @@ namespace Skrib
         public MainWindow()
         {
             this.InitializeComponent();
-            // The window backdrop must show through the preview: the XAML attribute is not
-            // reliably honored on every Windows App SDK build, so set it in code.
-            MarkdownWebView.DefaultBackgroundColor = Microsoft.UI.Colors.Transparent;
             ConfigureCustomTitleBar();
             InitializeContextMenu();
             SetMinimumWindowSize();
@@ -78,7 +69,7 @@ namespace Skrib
                     }
                     if (_showMarkdownPreview)
                     {
-                        SendPreviewUpdate();
+                        RenderMarkdownPreview();
                     }
                 };
                 if (root.FindName("AppTitleBar") is Border titleBar)
@@ -243,7 +234,21 @@ namespace Skrib
             {
                 CloseSettings();
                 e.Handled = true;
+                return;
             }
+            // Ctrl+A while previewing selects the whole rendered document.
+            if (_showMarkdownPreview && e.Key == VirtualKey.A && IsControlDown())
+            {
+                SelectAllInPreview();
+                e.Handled = true;
+            }
+        }
+
+        private static bool IsControlDown()
+        {
+            return Microsoft.UI.Input.InputKeyboardSource
+                .GetKeyStateForCurrentThread(VirtualKey.Control)
+                .HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
         }
 
         // Keeps the settings page usable at every window size:
@@ -746,40 +751,11 @@ namespace Skrib
             {
                 try { ApplicationData.Current.LocalSettings.Values["EditorTransparent"] = transparent; } catch { }
             }
-            UpdatePreviewBackground(transparent);
             // Force ThemeResource re-resolution so the overridden brushes apply immediately.
             var currentTheme = Editor.RequestedTheme;
             Editor.RequestedTheme = currentTheme == ElementTheme.Dark ? ElementTheme.Light : ElementTheme.Dark;
             Editor.RequestedTheme = currentTheme;
             UpdateEditorBgState();
-        }
-
-        // Keeps the WebView's own background in sync with the editor background setting.
-        // Transparent mode requests a transparent controller; opaque mode paints the exact
-        // editor color. The controller bakes its background at creation time, so a setting
-        // or theme change under a live WebView rebuilds it.
-        private void UpdatePreviewBackground(bool transparent)
-        {
-            try
-            {
-                if (MarkdownWebView == null) return;
-                var desired = transparent ? Microsoft.UI.Colors.Transparent : GetOpaqueEditorColor();
-                MarkdownWebView.DefaultBackgroundColor = desired;
-                if (MarkdownWebView.CoreWebView2 != null
-                    && _previewBgColor.HasValue
-                    && _previewBgColor.Value != desired)
-                {
-                    TeardownPreview();
-                    if (_showMarkdownPreview)
-                    {
-                        _ = ShowPreviewAsync();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.Write($"Error updating preview background: {ex.Message}");
-            }
         }
 
         // Opaque brush shared by the editor and the Markdown preview host.
@@ -892,14 +868,8 @@ namespace Skrib
             _isDirty = false;
             if (_showMarkdownPreview)
             {
-                if (IsMarkdownFile()) SendPreviewUpdate();
+                if (IsMarkdownFile()) RenderMarkdownPreview();
                 else SetMarkdownPreview(false);
-            }
-            // No document (or a non-Markdown one) can ever be previewed: release the
-            // preview browser processes entirely instead of leaving them suspended.
-            if (!IsMarkdownFile())
-            {
-                TeardownPreview();
             }
             UpdateTitle();
             UpdateCaretInfo();
@@ -958,10 +928,8 @@ namespace Skrib
         private async void NewFile_Click(object sender, RoutedEventArgs e)
         {
             if (!await AskSaveIfNeededAsync()) return;
-            // Clear the file first so SetEditorText sees a closed file and tears the
-            // preview WebView down.
-            _currentFile = null;
             SetEditorText(string.Empty);
+            _currentFile = null;
             _isDirty = false;
             UpdateTitle();
             UpdateCaretInfo();
@@ -1238,50 +1206,46 @@ namespace Skrib
             _showMarkdownPreview = show;
             try
             {
-                if (show) _ = ShowPreviewAsync();
+                if (show) RenderMarkdownPreview();
                 Editor.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
                 MarkdownPreviewHost.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
                 if (MenuPreview != null) MenuPreview.IsChecked = show;
                 if (PreviewToggleButton != null) PreviewToggleButton.IsChecked = show;
                 // The edit menu targets the hidden editor, so disable it while previewing.
                 if (MenuEdit != null) MenuEdit.IsEnabled = !show;
-                if (!show) SuspendPreview();
             }
             catch { }
             UpdateCaretInfo();
         }
 
-        // Frees most of the WebView memory while the preview is hidden: a suspended
-        // WebView keeps only a small footprint, and Resume() on the next show restores it.
-        private void SuspendPreview()
+        // Builds the native preview content from the current document. Synchronous on
+        // purpose: parsing and building paragraphs is instant for note-sized documents,
+        // and there is no browser process to keep alive anymore.
+        private void RenderMarkdownPreview()
         {
             try
             {
-                if (MarkdownWebView?.CoreWebView2 != null && !MarkdownWebView.CoreWebView2.IsSuspended)
-                {
-                    _ = MarkdownWebView.CoreWebView2.TrySuspendAsync();
-                }
+                bool light = (this.Content as FrameworkElement)?.ActualTheme != ElementTheme.Dark;
+                var blocks = MarkdownPreviewModel.Parse(Editor.Text ?? string.Empty);
+                MarkdownPreviewBuilder.Fill(MarkdownPreview, blocks, light);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error suspending preview: {ex.Message}");
+                System.Diagnostics.Debug.Write($"Error rendering Markdown preview: {ex.Message}");
             }
         }
 
-        // Fully releases the preview WebView (browser processes shut down) with Close().
-        // Used when the file is closed or replaced by a non-Markdown document; unlike
-        // suspension, nothing of the WebView stays allocated. The next preview simply
-        // re-creates it via EnsureCoreWebView2Async.
-        private void TeardownPreview()
+        // Ctrl+A in the preview selects the whole document (RichTextBlock has no built-in
+        // SelectAll; TextPointer-based selection spans every block).
+        private void SelectAllInPreview()
         {
             try
             {
-                _previewShellLoaded = false;
-                MarkdownWebView?.Close();
+                MarkdownPreview.Select(MarkdownPreview.ContentStart, MarkdownPreview.ContentEnd);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error tearing down preview: {ex.Message}");
+                System.Diagnostics.Debug.Write($"Error selecting preview text: {ex.Message}");
             }
         }
 
@@ -1293,129 +1257,6 @@ namespace Skrib
         private void PreviewToggleButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is ToggleButton button) SetMarkdownPreview(button.IsChecked == true);
-        }
-
-        // Loads the preview shell once, then pushes the rendered Markdown into it.
-        private async System.Threading.Tasks.Task ShowPreviewAsync()
-        {
-            try
-            {
-                // A dedicated environment: tracking prevention is a per-environment browser
-                // feature whose cost is useless for a local, offline-rendered document.
-                if (_previewEnvironment == null)
-                {
-                    _previewEnvironment = await Microsoft.Web.WebView2.Core.CoreWebView2Environment.CreateWithOptionsAsync(
-                        null, null,
-                        new Microsoft.Web.WebView2.Core.CoreWebView2EnvironmentOptions
-                        {
-                            EnableTrackingPrevention = false
-                        });
-                }
-                // Transparency for WinUI 3 is set through controller options: the XAML
-                // DefaultBackgroundColor property alone is ignored
-                // (microsoft-ui-xaml#6527, WebView2Feedback#4969).
-                bool transparentBg = EditorBgToggle != null && EditorBgToggle.IsOn;
-                var desiredBg = transparentBg ? Microsoft.UI.Colors.Transparent : GetOpaqueEditorColor();
-                var controllerOptions = _previewEnvironment.CreateCoreWebView2ControllerOptions();
-                controllerOptions.DefaultBackgroundColor = desiredBg;
-                await MarkdownWebView.EnsureCoreWebView2Async(_previewEnvironment, controllerOptions);
-                _previewBgColor = desiredBg;
-                if (MarkdownWebView.CoreWebView2.IsSuspended)
-                {
-                    MarkdownWebView.CoreWebView2.Resume();
-                }
-                // Tell the browser runtime to trim aggressively: the preview only renders a
-                // static local document, so it does not need the default memory headroom.
-                try
-                {
-                    MarkdownWebView.CoreWebView2.MemoryUsageTargetLevel
-                        = Microsoft.Web.WebView2.Core.CoreWebView2MemoryUsageTargetLevel.Low;
-                }
-                catch (Exception) { // Older WebView2 runtime without the API: keep the default.
-                }
-                if (!_previewShellLoaded)
-                {
-                    var settings = MarkdownWebView.CoreWebView2.Settings;
-                    settings.AreDevToolsEnabled = false;
-                    settings.IsBuiltInErrorPageEnabled = false;
-                    MarkdownWebView.CoreWebView2.NavigateToString(MarkdownPreviewRenderer.BuildShellHtml());
-                    _previewShellLoaded = true;
-                }
-                SendPreviewUpdate();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.Write($"Error showing Markdown preview: {ex.Message}");
-            }
-        }
-
-        // Sends the current document (rendered HTML + theme colors) to the preview shell.
-        private void SendPreviewUpdate()
-        {
-            if (!_previewShellLoaded) return;
-            try
-            {
-                bool dark = (this.Content as FrameworkElement)?.ActualTheme == ElementTheme.Dark;
-                bool transparent = EditorBgToggle == null || EditorBgToggle.IsOn;
-                var message = new
-                {
-                    type = "render",
-                    html = MarkdownPreviewRenderer.ToHtmlFragment(Editor.Text ?? string.Empty),
-                    dark,
-                    accent = GetAccentHex(),
-                    // Empty in transparent mode: the window backdrop shows through.
-                    bg = transparent ? string.Empty : ToHex(GetOpaqueEditorColor())
-                };
-                MarkdownWebView.CoreWebView2.PostWebMessageAsJson(System.Text.Json.JsonSerializer.Serialize(message));
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.Write($"Error updating Markdown preview: {ex.Message}");
-            }
-        }
-
-        private static string ToHex(Windows.UI.Color color)
-        {
-            return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
-        }
-
-        // Accent color of the current theme, as #RRGGBB (links, quote borders).
-        // UISettings always resolves the system accent; the constant is a last-resort fallback.
-        private string GetAccentHex()
-        {
-            try
-            {
-                var accent = new Windows.UI.ViewManagement.UISettings()
-                    .GetColorValue(Windows.UI.ViewManagement.UIColorType.Accent);
-                return $"#{accent.R:X2}{accent.G:X2}{accent.B:X2}";
-            }
-            catch { }
-            return "#0067C0";
-        }
-
-        // Links clicked in the preview open in the default browser; only the data: shell
-        // document itself is allowed to navigate inside the WebView.
-        private async void MarkdownWebView_NavigationStarting(object sender, Microsoft.Web.WebView2.Core.CoreWebView2NavigationStartingEventArgs e)
-        {
-            string uri = e.Uri ?? string.Empty;
-            if (uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
-                || uri.StartsWith("#", StringComparison.Ordinal))
-            {
-                return;
-            }
-            e.Cancel = true;
-            try
-            {
-                if (Uri.TryCreate(uri, UriKind.Absolute, out var target)
-                    && (target.Scheme == "http" || target.Scheme == "https" || target.Scheme == "mailto"))
-                {
-                    await Launcher.LaunchUriAsync(target);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.Write($"Error opening link from preview: {ex.Message}");
-            }
         }
 
         #endregion

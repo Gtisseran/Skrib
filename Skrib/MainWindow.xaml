@@ -179,108 +179,36 @@
                                 <SolidColorBrush x:Key="TextControlBackground" Color="#FFFFFF"/>
                                 <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#FFFFFF"/>
                                 <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#FFFFFF"/>
-                                <SolidColorBrush x:Key="EditorScrollThumbFill" Color="#59202020"/>
                             </ResourceDictionary>
                             <ResourceDictionary x:Key="Dark">
                                 <SolidColorBrush x:Key="TextControlBackground" Color="#202020"/>
                                 <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#202020"/>
                                 <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#202020"/>
-                                <SolidColorBrush x:Key="EditorScrollThumbFill" Color="#66DADADA"/>
                             </ResourceDictionary>
                         </ResourceDictionary.ThemeDictionaries>
-                        <!--
-                            Minimal scrollbar: a thin rounded thumb over an invisible track.
-                            The default Fluent scrollbar expands to a wide track with
-                            hit-areas; this template keeps a quiet 8px bar at all times.
-                            The named parts (Root, *TrackRect, *Thumb, *LargeIncrease,
-                            *LargeDecrease) are the ScrollBar template contract: the
-                            control positions and sizes them itself.
-                        -->
-                        <Style x:Key="EditorScrollRepeatButtonStyle" TargetType="RepeatButton">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="RepeatButton">
-                                        <Rectangle Fill="Transparent" />
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                        <Style x:Key="EditorScrollBarThumbStyle" TargetType="Thumb">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Thumb">
-                                        <Rectangle Fill="{ThemeResource EditorScrollThumbFill}" RadiusX="4" RadiusY="4" Margin="2" />
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                        <Style TargetType="ScrollBar">
-                            <Setter Property="MinWidth" Value="8" />
-                            <Setter Property="MinHeight" Value="8" />
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ScrollBar">
-                                        <Grid x:Name="Root" Background="Transparent">
-                                            <VisualStateManager.VisualStateGroups>
-                                                <VisualStateGroup x:Name="Orientation">
-                                                    <VisualState x:Name="Vertical">
-                                                        <VisualState.Setters>
-                                                            <Setter Target="HorizontalTrackRect.Visibility" Value="Collapsed" />
-                                                            <Setter Target="HorizontalThumb.Visibility" Value="Collapsed" />
-                                                            <Setter Target="HorizontalLargeDecrease.Visibility" Value="Collapsed" />
-                                                            <Setter Target="HorizontalLargeIncrease.Visibility" Value="Collapsed" />
-                                                            <Setter Target="VerticalTrackRect.Visibility" Value="Visible" />
-                                                            <Setter Target="VerticalThumb.Visibility" Value="Visible" />
-                                                            <Setter Target="VerticalLargeDecrease.Visibility" Value="Visible" />
-                                                            <Setter Target="VerticalLargeIncrease.Visibility" Value="Visible" />
-                                                        </VisualState.Setters>
-                                                    </VisualState>
-                                                    <VisualState x:Name="Horizontal">
-                                                        <VisualState.Setters>
-                                                            <Setter Target="VerticalTrackRect.Visibility" Value="Collapsed" />
-                                                            <Setter Target="VerticalThumb.Visibility" Value="Collapsed" />
-                                                            <Setter Target="VerticalLargeDecrease.Visibility" Value="Collapsed" />
-                                                            <Setter Target="VerticalLargeIncrease.Visibility" Value="Collapsed" />
-                                                            <Setter Target="HorizontalTrackRect.Visibility" Value="Visible" />
-                                                            <Setter Target="HorizontalThumb.Visibility" Value="Visible" />
-                                                            <Setter Target="HorizontalLargeDecrease.Visibility" Value="Visible" />
-                                                            <Setter Target="HorizontalLargeIncrease.Visibility" Value="Visible" />
-                                                        </VisualState.Setters>
-                                                    </VisualState>
-                                                </VisualStateGroup>
-                                            </VisualStateManager.VisualStateGroups>
-                                            <!-- Vertical parts (default orientation) -->
-                                            <Rectangle x:Name="VerticalTrackRect" Fill="Transparent" />
-                                            <RepeatButton x:Name="VerticalLargeDecrease" Style="{StaticResource EditorScrollRepeatButtonStyle}" IsTabStop="False" />
-                                            <Thumb x:Name="VerticalThumb" Style="{StaticResource EditorScrollBarThumbStyle}" />
-                                            <RepeatButton x:Name="VerticalLargeIncrease" Style="{StaticResource EditorScrollRepeatButtonStyle}" IsTabStop="False" />
-                                            <!-- Horizontal parts (collapsed until the Horizontal state) -->
-                                            <Rectangle x:Name="HorizontalTrackRect" Fill="Transparent" Visibility="Collapsed" />
-                                            <RepeatButton x:Name="HorizontalLargeDecrease" Style="{StaticResource EditorScrollRepeatButtonStyle}" IsTabStop="False" Visibility="Collapsed" />
-                                            <Thumb x:Name="HorizontalThumb" Style="{StaticResource EditorScrollBarThumbStyle}" Visibility="Collapsed" />
-                                            <RepeatButton x:Name="HorizontalLargeIncrease" Style="{StaticResource EditorScrollRepeatButtonStyle}" IsTabStop="False" Visibility="Collapsed" />
-                                        </Grid>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
                     </ResourceDictionary>
                 </TextBox.Resources>
             </TextBox>
 
             <!--
-                The preview renders Markdown in a WebView2: unlike MarkdownTextBlock, which
-                emits one TextBlock per paragraph (selection scoped to a single block, so
-                Ctrl+A and drag selection never crossed paragraphs), a browser view gives
-                normal text selection over the whole document.
+                The preview is native XAML (RichTextBlock): unlike MarkdownTextBlock, which
+                emits one TextBlock per paragraph (selection scoped to a single block), a
+                RichTextBlock selects across the whole document. Being XAML, the window
+                backdrop shows through with the transparency setting, themes follow the
+                theme resources automatically, and no browser process is spawned.
             -->
             <Border x:Name="MarkdownPreviewHost" Grid.Row="1" Visibility="Collapsed"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="8">
-                <WebView2 x:Name="MarkdownWebView"
-                          NavigationStarting="MarkdownWebView_NavigationStarting" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="16">
+                    <RichTextBlock x:Name="MarkdownPreview"
+                        IsTextSelectionEnabled="True"
+                        TextWrapping="Wrap"
+                        FontSize="15"
+                        Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                </ScrollViewer>
             </Border>
 
             <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" Padding="10,4">
