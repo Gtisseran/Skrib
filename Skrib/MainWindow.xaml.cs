@@ -24,6 +24,8 @@ namespace Skrib
         private bool _previewShellLoaded;
         // Shared environment for the preview WebView (tracking prevention disabled).
         private Microsoft.Web.WebView2.Core.CoreWebView2Environment? _previewEnvironment;
+        // Background color baked into the preview controller at creation time.
+        private Windows.UI.Color? _previewBgColor;
         private readonly System.Collections.Generic.Dictionary<string, Microsoft.UI.Xaml.Media.Brush?> _origEditorBgBrushes = new();
         private string _currentLang = "fr";
         private bool _isInitialized = false;
@@ -753,18 +755,26 @@ namespace Skrib
         }
 
         // Keeps the WebView's own background in sync with the editor background setting.
-        // Opaque mode paints the exact editor color at the WebView level (never relies on
-        // runtime transparency, which WinUI 3 does not honor reliably); transparent mode
-        // requests a transparent WebView, backed by the browser launch flag set when the
-        // preview environment is created.
+        // Transparent mode requests a transparent controller; opaque mode paints the exact
+        // editor color. The controller bakes its background at creation time, so a setting
+        // or theme change under a live WebView rebuilds it.
         private void UpdatePreviewBackground(bool transparent)
         {
             try
             {
                 if (MarkdownWebView == null) return;
-                MarkdownWebView.DefaultBackgroundColor = transparent
-                    ? Microsoft.UI.Colors.Transparent
-                    : GetOpaqueEditorColor();
+                var desired = transparent ? Microsoft.UI.Colors.Transparent : GetOpaqueEditorColor();
+                MarkdownWebView.DefaultBackgroundColor = desired;
+                if (MarkdownWebView.CoreWebView2 != null
+                    && _previewBgColor.HasValue
+                    && _previewBgColor.Value != desired)
+                {
+                    TeardownPreview();
+                    if (_showMarkdownPreview)
+                    {
+                        _ = ShowPreviewAsync();
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -1294,15 +1304,6 @@ namespace Skrib
                 // feature whose cost is useless for a local, offline-rendered document.
                 if (_previewEnvironment == null)
                 {
-                    // WinUI 3 ignores DefaultBackgroundColor=Transparent on its own: the
-                    // browser must be launched with an alpha-0 default background
-                    // (microsoft-ui-xaml#6527). Must be set before the environment exists.
-                    try
-                    {
-                        Environment.SetEnvironmentVariable("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--default-background-color=00000000");
-                    }
-                    catch (Exception) { // Environment block denied: transparent mode may fall back to opaque.
-                    }
                     _previewEnvironment = await Microsoft.Web.WebView2.Core.CoreWebView2Environment.CreateWithOptionsAsync(
                         null, null,
                         new Microsoft.Web.WebView2.Core.CoreWebView2EnvironmentOptions
@@ -1310,7 +1311,15 @@ namespace Skrib
                             EnableTrackingPrevention = false
                         });
                 }
-                await MarkdownWebView.EnsureCoreWebView2Async(_previewEnvironment);
+                // Transparency for WinUI 3 is set through controller options: the XAML
+                // DefaultBackgroundColor property alone is ignored
+                // (microsoft-ui-xaml#6527, WebView2Feedback#4969).
+                bool transparentBg = EditorBgToggle != null && EditorBgToggle.IsOn;
+                var desiredBg = transparentBg ? Microsoft.UI.Colors.Transparent : GetOpaqueEditorColor();
+                var controllerOptions = _previewEnvironment.CreateCoreWebView2ControllerOptions();
+                controllerOptions.DefaultBackgroundColor = desiredBg;
+                await MarkdownWebView.EnsureCoreWebView2Async(_previewEnvironment, controllerOptions);
+                _previewBgColor = desiredBg;
                 if (MarkdownWebView.CoreWebView2.IsSuspended)
                 {
                     MarkdownWebView.CoreWebView2.Resume();
