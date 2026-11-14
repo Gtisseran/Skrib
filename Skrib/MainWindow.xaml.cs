@@ -445,7 +445,8 @@ namespace Skrib
             {
                 // Scale the "About" column continuously with the window instead of
                 // snapping between breakpoints, so dragging the window stays fluid.
-                aboutWidth = Math.Clamp(width * 0.30, 280, 340);
+                // The 8 px step keeps a drag-resize from relaying out on every pixel.
+                aboutWidth = Math.Clamp(Math.Round(width * 0.30 / 8) * 8, 280, 340);
                 AboutColumn.Width = new GridLength(aboutWidth);
             }
 
@@ -474,8 +475,9 @@ namespace Skrib
             // The dropdowns shrink with the card and only move below the labels
             // when there is no longer enough room to keep them inline.
             double mainWidth = isWide ? width - aboutWidth - 24 : width;
-            double themeWidth = Math.Clamp(mainWidth * 0.38, 220, 280);
-            double comboWidth = Math.Clamp(mainWidth * 0.32, 200, 240);
+            // Same 8 px step: fewer real width changes during a drag-resize.
+            double themeWidth = Math.Clamp(Math.Round(mainWidth * 0.38 / 8) * 8, 220, 280);
+            double comboWidth = Math.Clamp(Math.Round(mainWidth * 0.32 / 8) * 8, 200, 240);
 
             if (_settingsComboBoxesStacked != stackComboBoxes)
             {
