@@ -1,11 +1,10 @@
 using System.Reflection;
-using System.Text;
 
 namespace Skrib.Tests;
 
 /// <summary>
 /// Guards the localization layer: every user-facing string must carry a translation for
-/// every supported language, and every supported language must be offered in the picker.
+/// every supported language, and every id used by the UI must exist in the table.
 /// These checks run against the real sources, so adding a language cannot silently leave
 /// a string untranslated.
 /// </summary>
@@ -25,35 +24,61 @@ public class TranslationCoverageTests
     }
 
     [Fact]
-    public void EveryLocalizedString_HasATranslationForEachLanguage()
+    public void EveryUiString_HasATranslationForEachLanguage()
     {
-        var calls = ParseLocCalls(ReadSource(Path.Combine("Skrib", "MainWindow.xaml.cs")));
+        Assert.True(UiStrings.All.Length >= 40,
+            $"Seulement {UiStrings.All.Length} chaînes dans la table UiStrings, la table a peut-être été vidée.");
 
-        // A Loc() call is one localized string: one argument per language.
-        Assert.True(calls.Count >= 40,
-            $"Seulement {calls.Count} chaînes localisées trouvées, la zone de langue a peut-être été déplacée.");
-
+        var ids = new HashSet<string>();
         var problems = new List<string>();
-        foreach (var call in calls)
+        foreach (var entry in UiStrings.All)
         {
-            if (call.Length != LanguageHelper.Supported.Length)
+            if (!ids.Add(entry.Id))
             {
-                problems.Add($"{call.Length} argument(s) au lieu de {LanguageHelper.Supported.Length} : {string.Join(" | ", call)}");
-                continue;
+                problems.Add($"Id en double : {entry.Id}");
             }
 
-            for (int i = 0; i < call.Length; i++)
+            var values = new[] { entry.En, entry.Fr, entry.Es };
+            for (int i = 0; i < values.Length; i++)
             {
-                var value = call[i].Trim();
-                if (!value.StartsWith('"') || !value.EndsWith('"') || value.Length <= 2)
+                if (string.IsNullOrWhiteSpace(values[i]))
                 {
-                    problems.Add($"Argument {i + 1} vide ou non littéral : {value}");
+                    problems.Add($"{entry.Id} : traduction {LanguageHelper.Supported[i]} vide");
                 }
             }
         }
 
         Assert.True(problems.Count == 0,
             "Chaînes localisées incomplètes :\n" + string.Join("\n", problems));
+    }
+
+    [Fact]
+    public void EveryStringIdUsedByTheMainWindow_ExistsInTheTable()
+    {
+        var source = ReadSource(Path.Combine("Skrib", "MainWindow.xaml.cs"));
+        Assert.True(source.Contains("S(\"", StringComparison.Ordinal),
+            "MainWindow n'utilise plus la table UiStrings via S(\"...\").");
+
+        var knownIds = UiStrings.All.Select(entry => entry.Id).ToHashSet();
+        var problems = new List<string>();
+
+        int index = 0;
+        while ((index = source.IndexOf("S(\"", index, StringComparison.Ordinal)) >= 0)
+        {
+            int start = index + 2;
+            int end = source.IndexOf('"', start + 1);
+            if (end < 0) break;
+
+            var id = source.Substring(start + 1, end - start - 1);
+            if (!knownIds.Contains(id))
+            {
+                problems.Add(id);
+            }
+            index = end + 1;
+        }
+
+        Assert.True(problems.Count == 0,
+            "Ids absents de la table UiStrings : " + string.Join(", ", problems));
     }
 
     [Fact]
@@ -80,29 +105,15 @@ public class TranslationCoverageTests
         Assert.True(xaml.Contains("PlaceholderText=", StringComparison.Ordinal),
             "Le TextBox de l'éditeur ne définit pas PlaceholderText.");
 
+        var entry = UiStrings.All.FirstOrDefault(e => e.Id == "editor.placeholder");
+        Assert.NotNull(entry);
+        Assert.Equal("Start writing…", entry!.En);
+        Assert.Equal("Commencez à écrire…", entry.Fr);
+        Assert.Equal("Empieza a escribir…", entry.Es);
+
         var source = ReadSource(Path.Combine("Skrib", "MainWindow.xaml.cs"));
-        var calls = ParseLocCalls(source);
-
-        var placeholders = calls
-            .Where(call => call.Any(arg => arg.Contains("écrire", StringComparison.Ordinal)
-                                       || arg.Contains("writing", StringComparison.Ordinal)
-                                       || arg.Contains("escribir", StringComparison.Ordinal)))
-            .ToList();
-
-        Assert.True(placeholders.Count > 0,
-            "Aucun texte d'accueil localisé trouvé dans l'éditeur.");
-
-        foreach (var call in placeholders)
-        {
-            Assert.Equal(LanguageHelper.Supported.Length, call.Length);
-        }
-
-        var values = placeholders.SelectMany(call => call).Select(arg => arg.Trim('"')).ToList();
-        foreach (var expected in new[] { "Start writing…", "Commencez à écrire…", "Empieza a escribir…" })
-        {
-            Assert.True(values.Contains(expected, StringComparer.Ordinal),
-                $"Texte d'accueil manquant : {expected}");
-        }
+        Assert.True(source.Contains("\"editor.placeholder\"", StringComparison.Ordinal),
+            "L'id editor.placeholder n'est pas utilisé dans MainWindow.xaml.cs.");
     }
 
     [Fact]
@@ -127,74 +138,5 @@ public class TranslationCoverageTests
 
         Assert.True(missing.Count == 0,
             "Nom affiché absent du sélecteur : " + string.Join(", ", missing));
-    }
-
-    /// <summary>
-    /// Extracts the argument list of every Loc(...) call, skipping the method declaration.
-    /// </summary>
-    private static List<string[]> ParseLocCalls(string source)
-    {
-        var calls = new List<string[]>();
-        int index = 0;
-
-        while (true)
-        {
-            int start = source.IndexOf("Loc(", index, StringComparison.Ordinal);
-            if (start < 0) break;
-
-            index = start + 4;
-            int depth = 1;
-            var arguments = new List<string>();
-            var current = new StringBuilder();
-
-            while (index < source.Length && depth > 0)
-            {
-                char c = source[index];
-
-                if (c == '"')
-                {
-                    current.Append(c);
-                    index++;
-                    while (index < source.Length)
-                    {
-                        current.Append(source[index]);
-                        if (source[index] == '"' && source[index - 1] != '\\')
-                        {
-                            index++;
-                            break;
-                        }
-                        index++;
-                    }
-                    continue;
-                }
-
-                if (c == '(') depth++;
-                else if (c == ')')
-                {
-                    depth--;
-                    if (depth == 0) break;
-                }
-                else if (c == ',' && depth == 1)
-                {
-                    arguments.Add(current.ToString().Trim());
-                    current.Clear();
-                    index++;
-                    continue;
-                }
-
-                current.Append(c);
-                index++;
-            }
-
-            arguments.Add(current.ToString().Trim());
-
-            // A real call starts with a string literal; the declaration starts with a type.
-            if (arguments.Count > 0 && arguments[0].StartsWith('"'))
-            {
-                calls.Add(arguments.ToArray());
-            }
-        }
-
-        return calls;
     }
 }

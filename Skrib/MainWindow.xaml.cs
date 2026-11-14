@@ -25,7 +25,7 @@ namespace Skrib
         private string _currentLang = "fr";
         private bool _isInitialized = false;
         private bool _suppressDirty;
-        private bool _titleRefreshQueued;
+        private bool _uiRefreshQueued;
         private MenuFlyoutItem? _contextUndo;
         private MenuFlyoutItem? _contextRedo;
         private MenuFlyoutItem? _contextCut;
@@ -350,7 +350,7 @@ namespace Skrib
 
         private void UpdateAboutVersion()
         {
-            AboutDesc.Text = Loc("Version", "Version", "Versión") + " " + GetVersionString();
+            AboutDesc.Text = S("about.version") + " " + GetVersionString();
         }
 
         #region Settings Page Navigation
@@ -523,7 +523,10 @@ namespace Skrib
                 var v = ApplicationData.Current.LocalSettings.Values["AppTheme"] as string;
                 if (Enum.TryParse(v, out ElementTheme t)) return t;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error loading theme: {ex.Message}");
+            }
             return ElementTheme.Default;
         }
 
@@ -565,7 +568,11 @@ namespace Skrib
             {
                 try
                 {
-                    Enum.TryParse(tag, out ElementTheme theme);
+                    if (!Enum.TryParse(tag, out ElementTheme theme))
+                    {
+                        System.Diagnostics.Debug.Write($"Unknown theme tag: {tag}");
+                        return;
+                    }
                     ApplyTheme(theme);
                 }
                 catch (Exception ex)
@@ -593,7 +600,10 @@ namespace Skrib
                 var v = ApplicationData.Current.LocalSettings.Values["AppBackdrop"] as string;
                 if (v == "Acrylic") return "Acrylic";
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error loading backdrop: {ex.Message}");
+            }
             return SettingsDefaults.Backdrop;
         }
 
@@ -631,17 +641,11 @@ namespace Skrib
 
         #region Language Management
 
-        // Returns the string matching the active language. English is the source of truth,
-        // French and Spanish follow the same order everywhere so a new language only needs
-        // one extra argument per string.
-        private string Loc(string en, string fr, string es)
+        // Returns the localized string matching the active language, from the UiStrings
+        // table (stable id + one translation per supported language).
+        private string S(string id)
         {
-            switch (_currentLang)
-            {
-                case LanguageHelper.English: return en;
-                case LanguageHelper.Spanish: return es;
-                default: return fr;
-            }
+            return UiStrings.Get(_currentLang, id);
         }
 
         private void ApplySavedLanguage()
@@ -724,66 +728,65 @@ namespace Skrib
                 }
             }
 
-            MenuFile.Title = Loc("File", "Fichier", "Archivo");
-            MenuNew.Text = Loc("New", "Nouveau", "Nuevo");
-            MenuOpen.Text = Loc("Open...", "Ouvrir...", "Abrir...");
-            MenuSave.Text = Loc("Save", "Enregistrer", "Guardar");
-            MenuSaveAs.Text = Loc("Save As...", "Enregistrer sous...", "Guardar como...");
-            MenuExit.Text = Loc("Exit", "Quitter", "Salir");
+            MenuFile.Title = S("menu.file");
+            MenuNew.Text = S("menu.new");
+            MenuOpen.Text = S("menu.open");
+            MenuSave.Text = S("menu.save");
+            MenuSaveAs.Text = S("menu.saveAs");
+            MenuExit.Text = S("menu.exit");
 
-            MenuEdit.Title = Loc("Edit", "Édition", "Editar");
-            MenuUndo.Text = Loc("Undo", "Annuler", "Deshacer");
-            MenuRedo.Text = Loc("Redo", "Rétablir", "Rehacer");
-            MenuCut.Text = Loc("Cut", "Couper", "Cortar");
-            MenuCopy.Text = Loc("Copy", "Copier", "Copiar");
-            MenuPaste.Text = Loc("Paste", "Coller", "Pegar");
-            MenuSelectAll.Text = Loc("Select All", "Tout sélectionner", "Seleccionar todo");
-            MenuView.Title = Loc("View", "Affichage", "Ver");
-            MenuPreview.Text = Loc("Markdown preview", "Aperçu Markdown", "Vista previa de Markdown");
-            ToolTipService.SetToolTip(PreviewToggleButton, Loc("Markdown preview", "Aperçu Markdown", "Vista previa de Markdown"));
+            MenuEdit.Title = S("menu.edit");
+            MenuUndo.Text = S("menu.undo");
+            MenuRedo.Text = S("menu.redo");
+            MenuCut.Text = S("menu.cut");
+            MenuCopy.Text = S("menu.copy");
+            MenuPaste.Text = S("menu.paste");
+            MenuSelectAll.Text = S("menu.selectAll");
+            MenuView.Title = S("menu.view");
+            MenuPreview.Text = S("menu.preview");
+            ToolTipService.SetToolTip(PreviewToggleButton, S("menu.preview"));
 
-            if (_contextUndo != null) _contextUndo.Text = Loc("Undo", "Annuler", "Deshacer");
-            if (_contextRedo != null) _contextRedo.Text = Loc("Redo", "Rétablir", "Rehacer");
-            if (_contextCut != null) _contextCut.Text = Loc("Cut", "Couper", "Cortar");
-            if (_contextCopy != null) _contextCopy.Text = Loc("Copy", "Copier", "Copiar");
-            if (_contextPaste != null) _contextPaste.Text = Loc("Paste", "Coller", "Pegar");
-            if (_contextSelectAll != null) _contextSelectAll.Text = Loc("Select All", "Tout sélectionner", "Seleccionar todo");
+            if (_contextUndo != null) _contextUndo.Text = S("menu.undo");
+            if (_contextRedo != null) _contextRedo.Text = S("menu.redo");
+            if (_contextCut != null) _contextCut.Text = S("menu.cut");
+            if (_contextCopy != null) _contextCopy.Text = S("menu.copy");
+            if (_contextPaste != null) _contextPaste.Text = S("menu.paste");
+            if (_contextSelectAll != null) _contextSelectAll.Text = S("menu.selectAll");
 
-            ToolTipService.SetToolTip(SettingsButton, Loc("Settings", "Paramètres", "Configuración"));
-            ToolTipService.SetToolTip(BackButton, Loc("Back", "Retour", "Atrás"));
-            SettingsTitleText.Text = Loc("Settings", "Paramètres", "Configuración");
+            ToolTipService.SetToolTip(SettingsButton, S("settings.title"));
+            ToolTipService.SetToolTip(BackButton, S("settings.back"));
+            SettingsTitleText.Text = S("settings.title");
 
-            SectionAppearanceTitle.Text = Loc("Appearance", "Apparence", "Apariencia");
-            ThemeHeaderTitle.Text = Loc("App theme", "Thème de l'application", "Tema de la aplicación");
-            ThemeHeaderDesc.Text = Loc("Select which app theme to display in Skrib", "Choisissez le thème à afficher dans Skrib", "Elige el tema que se mostrará en Skrib");
-            ThemeLightComboText.Text = Loc("Light", "Clair", "Claro");
-            ThemeDarkComboText.Text = Loc("Dark", "Sombre", "Oscuro");
-            ThemeSystemComboText.Text = Loc("Use system theme", "Utiliser le thème du système", "Usar el tema del sistema");
-            BackdropHeaderTitle.Text = Loc("Background", "Arrière-plan", "Fondo");
-            BackdropHeaderDesc.Text = Loc("Choose the background shown in Skrib", "Choisissez l'arrière-plan affiché dans Skrib", "Elige el fondo que se mostrará en Skrib");
+            SectionAppearanceTitle.Text = S("settings.section.appearance");
+            ThemeHeaderTitle.Text = S("settings.theme.title");
+            ThemeHeaderDesc.Text = S("settings.theme.desc");
+            ThemeLightComboText.Text = S("settings.theme.light");
+            ThemeDarkComboText.Text = S("settings.theme.dark");
+            ThemeSystemComboText.Text = S("settings.theme.system");
+            BackdropHeaderTitle.Text = S("settings.backdrop.title");
+            BackdropHeaderDesc.Text = S("settings.backdrop.desc");
             BackdropMicaComboText.Text = "Mica";
-            BackdropAcrylicComboText.Text = Loc("Acrylic", "Acrylique", "Acrílico");
+            BackdropAcrylicComboText.Text = S("settings.backdrop.acrylic");
 
-            LangHeaderTitle.Text = Loc("Language", "Langue", "Idioma");
-            LangHeaderDesc.Text = Loc("Choose application display language", "Choisissez la langue de l'application", "Elige el idioma de la aplicación");
-            LangFrComboText.Text = Loc("French (FR)", "Français (FR)", "Français (FR)");
-            LangEsComboText.Text = Loc("Spanish (ES)", "Español (ES)", "Español (ES)");
-            LangEnComboText.Text = "English (EN)";
-            LangSystemComboText.Text = Loc("System", "Système", "Sistema");
+            LangHeaderTitle.Text = S("settings.language.title");
+            LangHeaderDesc.Text = S("settings.language.desc");
+            LangFrComboText.Text = S("settings.lang.fr");
+            LangEsComboText.Text = S("settings.lang.es");
+            LangSystemComboText.Text = S("settings.lang.system");
 
-            SectionEditorTitle.Text = Loc("Editor", "Éditeur", "Editor");
-            WordWrapTitle.Text = Loc("Word wrap", "Retour automatique à la ligne", "Ajuste de línea");
-            WordWrapDesc.Text = Loc("Wrap long lines of text to fit the window width", "Renvoyer automatiquement le texte à la ligne", "Ajusta las líneas largas de texto al ancho de la ventana");
-            EditorBgTitle.Text = Loc("Text area background", "Fond de la zone de texte", "Fondo del área de texto");
-            EditorBgDesc.Text = Loc("Show the app background behind the text", "Afficher l'arrière-plan de l'application derrière le texte", "Mostrar el fondo de la aplicación detrás del texto");
+            SectionEditorTitle.Text = S("settings.section.editor");
+            WordWrapTitle.Text = S("settings.wordWrap.title");
+            WordWrapDesc.Text = S("settings.wordWrap.desc");
+            EditorBgTitle.Text = S("settings.editorBg.title");
+            EditorBgDesc.Text = S("settings.editorBg.desc");
 
             // The editor welcome message is only visible while the document is empty.
-            Editor.PlaceholderText = Loc("Start writing…", "Commencez à écrire…", "Empieza a escribir…");
+            Editor.PlaceholderText = S("editor.placeholder");
 
-            SectionAboutTitle.Text = Loc("About this app", "À propos de cette application", "Acerca de esta aplicación");
+            SectionAboutTitle.Text = S("settings.section.about");
             AboutTitle.Text = "Skrib";
             GitHubButtonText.Text = "GitHub";
-            RateButtonText.Text = Loc("Rate", "Noter", "Valorar");
+            RateButtonText.Text = S("about.rate");
 
             UpdateAboutVersion();
             UpdateTitle();
@@ -809,14 +812,18 @@ namespace Skrib
                     UpdateWordWrapState();
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error loading word wrap setting: {ex.Message}");
+            }
         }
 
         private void WordWrapToggle_Toggled(object sender, RoutedEventArgs e)
         {
             if (!_isInitialized) return;
             Editor.TextWrapping = WordWrapToggle.IsOn ? TextWrapping.Wrap : TextWrapping.NoWrap;
-            try { ApplicationData.Current.LocalSettings.Values["WordWrap"] = WordWrapToggle.IsOn; } catch { }
+            try { ApplicationData.Current.LocalSettings.Values["WordWrap"] = WordWrapToggle.IsOn; }
+            catch (Exception ex) { System.Diagnostics.Debug.Write($"Error saving word wrap setting: {ex.Message}"); }
             UpdateWordWrapState();
         }
 
@@ -824,7 +831,7 @@ namespace Skrib
         private void UpdateWordWrapState()
         {
             bool isOn = WordWrapToggle != null && WordWrapToggle.IsOn;
-            WordWrapStateText.Text = isOn ? Loc("On", "Activé", "Activado") : Loc("Off", "Désactivé", "Desactivado");
+            WordWrapStateText.Text = isOn ? S("common.on") : S("common.off");
         }
 
 
@@ -839,7 +846,10 @@ namespace Skrib
                 var v = ApplicationData.Current.LocalSettings.Values["EditorTransparent"];
                 if (v is bool on) transparent = on;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error loading editor background setting: {ex.Message}");
+            }
 
             EditorBgToggle.IsOn = transparent;
             ApplyEditorBg(transparent, save: false);
@@ -894,7 +904,8 @@ namespace Skrib
             }
             if (save)
             {
-                try { ApplicationData.Current.LocalSettings.Values["EditorTransparent"] = transparent; } catch { }
+                try { ApplicationData.Current.LocalSettings.Values["EditorTransparent"] = transparent; }
+                catch (Exception ex) { System.Diagnostics.Debug.Write($"Error saving editor background setting: {ex.Message}"); }
             }
             // Force ThemeResource re-resolution so the overridden brushes apply immediately.
             var currentTheme = Editor.RequestedTheme;
@@ -927,7 +938,10 @@ namespace Skrib
                     isDark = Editor.ActualTheme == ElementTheme.Dark;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error resolving editor theme: {ex.Message}");
+            }
             return isDark
                 ? Windows.UI.Color.FromArgb(0xFF, 0x20, 0x20, 0x20)
                 : Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF);
@@ -946,7 +960,10 @@ namespace Skrib
                     rd[key] = brush;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error overriding editor theme brush: {ex.Message}");
+            }
         }
 
         // Restores the XAML-defined theme brush; leaves it alone if we never overrode it.
@@ -961,19 +978,22 @@ namespace Skrib
                     else rd.Remove(key);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error restoring editor theme brush: {ex.Message}");
+            }
         }
 
         // Keeps the toggle state label in sync (fixed-width label so the toggle never shifts).
         private void UpdateEditorBgState()
         {
             bool isOn = EditorBgToggle != null && EditorBgToggle.IsOn;
-            EditorBgStateText.Text = isOn ? Loc("On", "Activé", "Activado") : Loc("Off", "Désactivé", "Desactivado");
+            EditorBgStateText.Text = isOn ? S("common.on") : S("common.off");
         }
         private void UpdateTitle()
         {
-            var untitled = Loc("Untitled", "Sans titre", "Sin título");
-            var ready = Loc("Ready", "Prêt", "Listo");
+            var untitled = S("doc.untitled");
+            var ready = S("status.ready");
             var name = _currentFile != null ? _currentFile.Name : untitled;
             var dirtyMark = _isDirty ? "*" : "";
             this.Title = $"Skrib - {name}{dirtyMark}";
@@ -990,9 +1010,9 @@ namespace Skrib
             {
                 StatusText.Text = _currentFile != null ? _currentFile.Path : ready;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Log would be added here for debugging
+                System.Diagnostics.Debug.Write($"Error reading file path: {ex.Message}");
                 StatusText.Text = _currentFile != null ? _currentFile.Name : ready;
             }
             UpdateMarkdownViewState();
@@ -1020,6 +1040,24 @@ namespace Skrib
             UpdateCaretInfo();
         }
 
+        // One coalesced dispatcher callback for the title / status-bar refresh. The caret
+        // info scans the text from the start, and SelectionChanged fires per keystroke and
+        // per drag-select movement, so batching keeps large documents responsive.
+        private void QueueUiRefresh()
+        {
+            if (_uiRefreshQueued)
+            {
+                return;
+            }
+            _uiRefreshQueued = true;
+            _ = DispatcherQueue.TryEnqueue(() =>
+            {
+                _uiRefreshQueued = false;
+                UpdateTitle();
+                UpdateCaretInfo();
+            });
+        }
+
         private void Editor_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (_suppressDirty)
@@ -1027,23 +1065,12 @@ namespace Skrib
                 return;
             }
             _isDirty = true;
-            if (_titleRefreshQueued)
-            {
-                return;
-            }
-
-            _titleRefreshQueued = true;
-            _ = DispatcherQueue.TryEnqueue(() =>
-            {
-                _titleRefreshQueued = false;
-                UpdateTitle();
-                UpdateCaretInfo();
-            });
+            QueueUiRefresh();
         }
 
         private void Editor_SelectionChanged(object sender, RoutedEventArgs e)
         {
-            UpdateCaretInfo();
+            QueueUiRefresh();
         }
 
         // Updates the line/column/character count shown in the status bar.
@@ -1063,9 +1090,9 @@ namespace Skrib
                 }
             }
             int col = pos - lastBreak;
-            string countLabel = Loc("chars", "caractères", "caracteres");
+            string countLabel = S("status.chars");
             if (_showMarkdownPreview)
-                CaretInfoText.Text = Loc("Preview | ", "Aperçu | ", "Vista previa | ") + text.Length + " " + countLabel;
+                CaretInfoText.Text = S("status.preview") + text.Length + " " + countLabel;
             else
                 CaretInfoText.Text = $"Ln {line}, Col {col} | {text.Length} {countLabel}";
         }
@@ -1087,7 +1114,8 @@ namespace Skrib
             try
             {
                 var picker = new FileOpenPicker();
-                try { InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this)); } catch { }
+                try { InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this)); }
+catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file picker: {ex.Message}"); }
                 picker.FileTypeFilter.Clear();
                 picker.FileTypeFilter.Add(".txt");
                 picker.FileTypeFilter.Add(".md");
@@ -1103,25 +1131,28 @@ namespace Skrib
                     }
                     catch (Exception ex)
                     {
-                        await ShowErrorAsync(Loc("Unable to read file", "Impossible de lire le fichier", "No se puede leer el archivo"), ex.Message);
+                        await ShowErrorAsync(S("error.readFile"), ex.Message);
                     }
                 }
             }
             catch (Exception ex)
             {
-                await ShowErrorAsync(Loc("Open error", "Erreur lors de l'ouverture", "Error al abrir"), ex.Message);
+                await ShowErrorAsync(S("error.open"), ex.Message);
             }
         }
 
         private async void SaveFile_Click(object sender, RoutedEventArgs e)
         {
-            try { await SaveAsync(); } catch (Exception ex) { await ShowErrorAsync(Loc("Save error", "Erreur lors de l'enregistrement", "Error al guardar"), ex.Message); }
+            try { await SaveAsync(); } catch (Exception ex) { await ShowErrorAsync(S("error.save"), ex.Message); }
         }
 
         private async void SaveAsFile_Click(object sender, RoutedEventArgs e)
         {
-            try { await SaveAsAsync(); } catch (Exception ex) { await ShowErrorAsync(Loc("Save error", "Erreur lors de l'enregistrement", "Error al guardar"), ex.Message); }
+            try { await SaveAsAsync(); } catch (Exception ex) { await ShowErrorAsync(S("error.save"), ex.Message); }
         }
+
+        // HResult for E_ACCESSDENIED (0x80070005): the save target is locked or access denied.
+        private const int FileAccessDenied = unchecked((int)0x80070005);
 
         private async Task<bool> SaveAsync()
         {
@@ -1138,7 +1169,7 @@ namespace Skrib
                 // The original file was moved or deleted: fall back to Save As.
                 return await SaveAsAsync();
             }
-            catch (Exception ex) when ((uint)ex.HResult == 0x80070005)
+            catch (Exception ex) when (ex.HResult == FileAccessDenied)
             {
                 // Access denied: fall back to Save As so the user can pick a new location.
                 return await SaveAsAsync();
@@ -1151,12 +1182,13 @@ namespace Skrib
         private async Task<bool> SaveAsAsync()
         {
             var picker = new FileSavePicker();
-            try { InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this)); } catch { }
+            try { InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this)); }
+catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file picker: {ex.Message}"); }
             picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
             picker.DefaultFileExtension = ".txt";
-            var untitled = Loc("Untitled", "Sans titre", "Sin título");
-            var txtLabel = Loc("Text Document", "Document texte (.txt)", "Documento de texto (.txt)");
-            var mdLabel = Loc("Markdown", "Markdown (.md)", "Markdown (.md)");
+            var untitled = S("doc.untitled");
+            var txtLabel = S("saveAs.txtType");
+            var mdLabel = S("saveAs.mdType");
             picker.SuggestedFileName = _currentFile != null ? Path.GetFileNameWithoutExtension(_currentFile.Name) : untitled;
             picker.FileTypeChoices.Clear();
             picker.FileTypeChoices.Add(txtLabel, new System.Collections.Generic.List<string>() { ".txt" });
@@ -1175,11 +1207,11 @@ namespace Skrib
             if (!_isDirty) return true;
             var dialog = new ContentDialog
             {
-                Title = Loc("Save changes?", "Enregistrer les modifications ?", "¿Guardar los cambios?"),
-                Content = Loc("The document has been modified. Do you want to save it?", "Le document a été modifié. Voulez-vous l'enregistrer ?", "El documento se ha modificado. ¿Quieres guardarlo?"),
-                PrimaryButtonText = Loc("Save", "Enregistrer", "Guardar"),
-                SecondaryButtonText = Loc("Don't save", "Ne pas enregistrer", "No guardar"),
-                CloseButtonText = Loc("Cancel", "Annuler", "Cancelar"),
+                Title = S("dialog.saveChanges.title"),
+                Content = S("dialog.saveChanges.body"),
+                PrimaryButtonText = S("menu.save"),
+                SecondaryButtonText = S("dialog.dontSave"),
+                CloseButtonText = S("dialog.cancel"),
                 XamlRoot = this.Content.XamlRoot
             };
             var result = await dialog.ShowAsync();
@@ -1201,7 +1233,10 @@ namespace Skrib
             {
                 await Launcher.LaunchUriAsync(new Uri("https://github.com/Gtisseran/Skrib"));
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error opening GitHub page: {ex.Message}");
+            }
         }
 
         // Opens the Store review page so users can rate the app (reviews are answered in Partner Center).
@@ -1215,7 +1250,10 @@ namespace Skrib
                     await Launcher.LaunchUriAsync(new Uri("https://apps.microsoft.com/detail/9p9tb8st018k"));
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error opening Store review page: {ex.Message}");
+            }
         }
 
         private static string GetVersionString()
@@ -1225,13 +1263,19 @@ namespace Skrib
                 var v = Windows.ApplicationModel.Package.Current.Id.Version;
                 return v.Major + "." + v.Minor + "." + v.Build + "." + v.Revision;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error reading package version: {ex.Message}");
+            }
             try
             {
                 var asm = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
                 if (asm != null) return asm.Major + "." + asm.Minor + "." + asm.Build + "." + asm.Revision;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error reading assembly version: {ex.Message}");
+            }
             return "1.0.0.0";
         }
 
@@ -1326,7 +1370,11 @@ namespace Skrib
                     return string.Equals(_currentFile.FileType, ".md", StringComparison.OrdinalIgnoreCase);
                 return _currentFile.Name.EndsWith(".md", StringComparison.OrdinalIgnoreCase);
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error checking markdown file type: {ex.Message}");
+                return false;
+            }
         }
 
         // Syncs the View menu, the header toggle and the editor/preview visibility.
@@ -1361,7 +1409,10 @@ namespace Skrib
                 // The edit menu targets the hidden editor, so disable it while previewing.
                 if (MenuEdit != null) MenuEdit.IsEnabled = !show;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error toggling markdown preview: {ex.Message}");
+            }
             UpdateCaretInfo();
         }
 
@@ -1423,7 +1474,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                await ShowErrorAsync(Loc("Unable to read file", "Impossible de lire le fichier", "No se puede leer el archivo"), ex.Message);
+                await ShowErrorAsync(S("error.readFile"), ex.Message);
             }
         }
 

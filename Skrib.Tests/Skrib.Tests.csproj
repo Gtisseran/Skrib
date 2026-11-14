@@ -29,6 +29,7 @@
     <Compile Include="..\Skrib\LanguageHelper.cs" Link="LanguageHelper.cs" />
     <Compile Include="..\Skrib\SettingsDefaults.cs" Link="SettingsDefaults.cs" />
     <Compile Include="..\Skrib\MarkdownPreviewModel.cs" Link="MarkdownPreviewModel.cs" />
+    <Compile Include="..\Skrib\UiStrings.cs" Link="UiStrings.cs" />
   </ItemGroup>
 
   <!-- Lets the translation coverage tests locate the sources they inspect. -->
