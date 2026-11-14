@@ -1421,6 +1421,11 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             UpdateCaretInfo();
         }
 
+        // Threshold above which a synchronous preview render is logged (ms). The render
+        // runs on the UI thread on purpose — instant for note-sized documents — but a
+        // very large document must stay visible instead of silently freezing the app.
+        private const int SlowPreviewRenderMs = 200;
+
         // Builds the native preview content from the current document. Synchronous on
         // purpose: parsing and building paragraphs is instant for note-sized documents,
         // and there is no browser process to keep alive anymore.
@@ -1429,8 +1434,15 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             try
             {
                 bool light = (this.Content as FrameworkElement)?.ActualTheme != ElementTheme.Dark;
+                var clock = System.Diagnostics.Stopwatch.StartNew();
                 var blocks = MarkdownPreviewModel.Parse(Editor.Text ?? string.Empty);
                 MarkdownPreviewBuilder.Fill(MarkdownPreview, blocks, light);
+                clock.Stop();
+                if (clock.ElapsedMilliseconds > SlowPreviewRenderMs)
+                {
+                    System.Diagnostics.Debug.Write(
+                        $"Markdown preview slow: {clock.ElapsedMilliseconds} ms for {Editor.Text?.Length ?? 0} chars");
+                }
             }
             catch (Exception ex)
             {
