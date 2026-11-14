@@ -67,12 +67,30 @@ namespace Skrib
         // with no animation, which feels jerky. Relay wheel input (already handled
         // deeper in the TextBox) to that inner ScrollViewer through ChangeView,
         // whose animated path matches the preview's fluid scroll.
+        private PointerEventHandler? _editorWheelHandler;
+
         private void Editor_Loaded(object sender, RoutedEventArgs e)
         {
-            _editorScrollViewer = FindDescendant<ScrollViewer>(Editor);
-            if (_editorScrollViewer is null) return;
-            _editorScrollViewer.ViewChanged += EditorScrollViewer_ViewChanged;
-            Editor.AddHandler(UIElement.PointerWheelChangedEvent, new PointerEventHandler(Editor_PointerWheelChanged), true);
+            // Loaded can fire again when the editor re-enters the visual tree: rebind the
+            // wheel relay to the current inner ScrollViewer instead of stacking handlers,
+            // which would scroll twice per wheel notch.
+            var sv = FindDescendant<ScrollViewer>(Editor);
+            if (sv is null) return;
+
+            if (_editorScrollViewer != null)
+            {
+                _editorScrollViewer.ViewChanged -= EditorScrollViewer_ViewChanged;
+            }
+
+            if (_editorWheelHandler is null)
+            {
+                _editorWheelHandler = new PointerEventHandler(Editor_PointerWheelChanged);
+            }
+            Editor.RemoveHandler(UIElement.PointerWheelChangedEvent, _editorWheelHandler);
+            Editor.AddHandler(UIElement.PointerWheelChangedEvent, _editorWheelHandler, true);
+
+            _editorScrollViewer = sv;
+            sv.ViewChanged += EditorScrollViewer_ViewChanged;
         }
 
         // Fraction of the raw wheel delta (±120 per notch) applied per tick,

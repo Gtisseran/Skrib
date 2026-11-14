@@ -20,28 +20,36 @@ namespace Skrib
         // Invoked when the application is launched (including via .txt / .md file association).
         protected override async void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            // Register (or find) the main instance so a second launch redirects instead of opening a new window.
-            var mainInstance = AppInstance.FindOrRegisterForKey("SkribMain");
-            var activatedArgs = AppInstance.GetCurrent().GetActivatedEventArgs();
-
-            if (!mainInstance.IsCurrent)
+            try
             {
-                // Redirect this activation to the running instance, then exit.
-                await mainInstance.RedirectActivationToAsync(activatedArgs);
-                System.Diagnostics.Process.GetCurrentProcess().Kill();
-                return;
+                // Register (or find) the main instance so a second launch redirects instead of opening a new window.
+                var mainInstance = AppInstance.FindOrRegisterForKey("SkribMain");
+                var activatedArgs = AppInstance.GetCurrent().GetActivatedEventArgs();
+
+                if (!mainInstance.IsCurrent)
+                {
+                    // Redirect this activation to the running instance, then exit.
+                    await mainInstance.RedirectActivationToAsync(activatedArgs);
+                    System.Diagnostics.Process.GetCurrentProcess().Kill();
+                    return;
+                }
+
+                mainInstance.Activated += OnAppActivated;
+
+                var window = new MainWindow();
+                _window = window;
+                window.Activate();
+
+                var fileToOpen = GetFileFromArgs(activatedArgs);
+                if (fileToOpen != null)
+                {
+                    await window.OpenFileFromStorageFileAsync(fileToOpen);
+                }
             }
-
-            mainInstance.Activated += OnAppActivated;
-
-            var window = new MainWindow();
-            _window = window;
-            window.Activate();
-
-            var fileToOpen = GetFileFromArgs(activatedArgs);
-            if (fileToOpen != null)
+            catch (Exception ex)
             {
-                await window.OpenFileFromStorageFileAsync(fileToOpen);
+                // async void: an unobserved exception would crash the app with no trace.
+                System.Diagnostics.Debug.Write($"Error launching Skrib: {ex.Message}");
             }
         }
 
@@ -57,7 +65,15 @@ namespace Skrib
             // Switch back to the UI thread before touching the window.
             _window.DispatcherQueue.TryEnqueue(async () =>
             {
-                await mainWindow.OpenFileFromStorageFileAsync(file);
+                try
+                {
+                    await mainWindow.OpenFileFromStorageFileAsync(file);
+                }
+                catch (Exception ex)
+                {
+                    // async void lambda: log instead of crashing on an unobserved failure.
+                    System.Diagnostics.Debug.Write($"Error opening activated file: {ex.Message}");
+                }
             });
         }
 
