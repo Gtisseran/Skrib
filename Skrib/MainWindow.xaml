@@ -336,6 +336,10 @@
 
             <!-- Content: responsive (side-by-side when wide, stacked when narrow) -->
             <ScrollViewer Grid.Row="1" Padding="20,0,20,24" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer.Resources>
+                    <!-- Same minimal scrollbar as the editor and the preview. -->
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource MinimalScrollBarStyle}" />
+                </ScrollViewer.Resources>
                 <Grid x:Name="SettingsContentGrid"
                       ColumnSpacing="24"
                       RowSpacing="0"

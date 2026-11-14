@@ -2,6 +2,7 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Windowing;
 using System;
 using System.Diagnostics;
@@ -33,6 +34,11 @@ namespace Skrib
         private MenuFlyoutItem? _contextSelectAll;
         private bool? _settingsWideLayout;
         private bool? _settingsComboBoxesStacked;
+        private ScrollViewer? _editorScrollViewer;
+        private double _smoothVerticalTarget;
+        private double _smoothHorizontalTarget;
+        private bool _smoothVerticalAnimating;
+        private bool _smoothHorizontalAnimating;
 
         public MainWindow()
         {
@@ -49,7 +55,75 @@ namespace Skrib
             UpdateAboutVersion();
             UpdateCaretInfo();
             UpdateWordWrapState();
+            Editor.Loaded += Editor_Loaded;
             _isInitialized = true;
+        }
+
+        // Smooth editor scrolling. The preview's ScrollViewer animates mouse-wheel
+        // input, but the TextBox scrolls its inner ScrollViewer one line at a time
+        // with no animation, which feels jerky. Relay wheel input (already handled
+        // deeper in the TextBox) to that inner ScrollViewer through ChangeView,
+        // whose animated path matches the preview's fluid scroll.
+        private void Editor_Loaded(object sender, RoutedEventArgs e)
+        {
+            _editorScrollViewer = FindDescendant<ScrollViewer>(Editor);
+            if (_editorScrollViewer is null) return;
+            _editorScrollViewer.ViewChanged += EditorScrollViewer_ViewChanged;
+            Editor.AddHandler(UIElement.PointerWheelChangedEvent, new PointerEventHandler(Editor_PointerWheelChanged), true);
+        }
+
+        private static bool IsShiftDown()
+        {
+            var state = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Shift);
+            return (state & Windows.UI.Core.CoreVirtualKeyStates.Down) == Windows.UI.Core.CoreVirtualKeyStates.Down;
+        }
+
+        private void Editor_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
+        {
+            var sv = _editorScrollViewer;
+            if (sv is null) return;
+            var props = e.GetCurrentPoint(Editor).Properties;
+
+            if (IsShiftDown())
+            {
+                // Shift+wheel: horizontal, forward scrolls left (Windows convention).
+                if (sv.ScrollableWidth <= 0) return;
+                if (!_smoothHorizontalAnimating) _smoothHorizontalTarget = sv.HorizontalOffset;
+                _smoothHorizontalTarget = Math.Clamp(_smoothHorizontalTarget - props.MouseWheelDelta, 0, sv.ScrollableWidth);
+                _smoothHorizontalAnimating = true;
+                sv.ChangeView(_smoothHorizontalTarget, null, null, false);
+            }
+            else
+            {
+                if (sv.ScrollableHeight <= 0) return;
+                if (!_smoothVerticalAnimating) _smoothVerticalTarget = sv.VerticalOffset;
+                _smoothVerticalTarget = Math.Clamp(_smoothVerticalTarget - props.MouseWheelDelta, 0, sv.ScrollableHeight);
+                _smoothVerticalAnimating = true;
+                sv.ChangeView(null, _smoothVerticalTarget, null, false);
+            }
+            e.Handled = true;
+        }
+
+        private void EditorScrollViewer_ViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
+        {
+            // Reset the accumulated targets once each animation settles, so the
+            // next wheel burst starts from the actual on-screen offset.
+            if (e.IsIntermediate) return;
+            _smoothVerticalAnimating = false;
+            _smoothHorizontalAnimating = false;
+        }
+
+        private static T? FindDescendant<T>(DependencyObject parent) where T : DependencyObject
+        {
+            int count = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T match) return match;
+                var nested = FindDescendant<T>(child);
+                if (nested is not null) return nested;
+            }
+            return null;
         }
 
         private void ConfigureCustomTitleBar()
