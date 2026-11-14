@@ -83,10 +83,23 @@ public class MarkdownPreviewRendererTests
         // The message listener is what receives each rendered document.
         Assert.Contains("addEventListener('message'", shell);
         Assert.Contains("getElementById('content')", shell);
-        // The window backdrop must show through the preview.
+        // The window backdrop must show through the preview unless the app sends
+        // an explicit opaque background with the render message.
         Assert.Contains("background: transparent", shell);
+        Assert.Contains("d.bg || 'transparent'", shell);
         // Selection must stay enabled over the whole document.
         Assert.Contains("user-select: text", shell);
+    }
+
+    [Fact]
+    public void ShellHtml_HasMinimalScrollbar_AndNoHorizontalScroll()
+    {
+        var shell = MarkdownPreviewRenderer.BuildShellHtml();
+        Assert.Contains("scrollbar-width: thin", shell);
+        Assert.Contains("::-webkit-scrollbar", shell);
+        Assert.Contains("::-webkit-scrollbar-track { background: transparent; }", shell);
+        // The text always wraps: no horizontal scrollbar should ever appear.
+        Assert.Contains("overflow-x: hidden", shell);
     }
 
     [Fact]

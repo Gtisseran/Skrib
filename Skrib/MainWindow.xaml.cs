@@ -744,6 +744,7 @@ namespace Skrib
             {
                 try { ApplicationData.Current.LocalSettings.Values["EditorTransparent"] = transparent; } catch { }
             }
+            UpdatePreviewBackground(transparent);
             // Force ThemeResource re-resolution so the overridden brushes apply immediately.
             var currentTheme = Editor.RequestedTheme;
             Editor.RequestedTheme = currentTheme == ElementTheme.Dark ? ElementTheme.Light : ElementTheme.Dark;
@@ -751,9 +752,35 @@ namespace Skrib
             UpdateEditorBgState();
         }
 
+        // Keeps the WebView's own background in sync with the editor background setting.
+        // Opaque mode paints the exact editor color at the WebView level (never relies on
+        // runtime transparency, which WinUI 3 does not honor reliably); transparent mode
+        // requests a transparent WebView, backed by the browser launch flag set when the
+        // preview environment is created.
+        private void UpdatePreviewBackground(bool transparent)
+        {
+            try
+            {
+                if (MarkdownWebView == null) return;
+                MarkdownWebView.DefaultBackgroundColor = transparent
+                    ? Microsoft.UI.Colors.Transparent
+                    : GetOpaqueEditorColor();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error updating preview background: {ex.Message}");
+            }
+        }
+
         // Opaque brush shared by the editor and the Markdown preview host.
         // Must match the XAML ThemeDictionaries in Editor.Resources (#FFFFFF light / #202020 dark).
         private Microsoft.UI.Xaml.Media.Brush GetOpaqueTextBrush()
+        {
+            return new Microsoft.UI.Xaml.Media.SolidColorBrush(GetOpaqueEditorColor());
+        }
+
+        // The opaque editor background color for the current theme.
+        private Windows.UI.Color GetOpaqueEditorColor()
         {
             bool isDark = false;
             try
@@ -770,10 +797,9 @@ namespace Skrib
                 }
             }
             catch { }
-            var color = isDark
+            return isDark
                 ? Windows.UI.Color.FromArgb(0xFF, 0x20, 0x20, 0x20)
                 : Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF);
-            return new Microsoft.UI.Xaml.Media.SolidColorBrush(color);
         }
 
         // Saves the XAML-defined theme brush once, then overrides it.
@@ -859,6 +885,12 @@ namespace Skrib
                 if (IsMarkdownFile()) SendPreviewUpdate();
                 else SetMarkdownPreview(false);
             }
+            // No document (or a non-Markdown one) can ever be previewed: release the
+            // preview browser processes entirely instead of leaving them suspended.
+            if (!IsMarkdownFile())
+            {
+                TeardownPreview();
+            }
             UpdateTitle();
             UpdateCaretInfo();
         }
@@ -916,8 +948,10 @@ namespace Skrib
         private async void NewFile_Click(object sender, RoutedEventArgs e)
         {
             if (!await AskSaveIfNeededAsync()) return;
-            SetEditorText(string.Empty);
+            // Clear the file first so SetEditorText sees a closed file and tears the
+            // preview WebView down.
             _currentFile = null;
+            SetEditorText(string.Empty);
             _isDirty = false;
             UpdateTitle();
             UpdateCaretInfo();
@@ -1224,6 +1258,23 @@ namespace Skrib
             }
         }
 
+        // Fully releases the preview WebView (browser processes shut down) with Close().
+        // Used when the file is closed or replaced by a non-Markdown document; unlike
+        // suspension, nothing of the WebView stays allocated. The next preview simply
+        // re-creates it via EnsureCoreWebView2Async.
+        private void TeardownPreview()
+        {
+            try
+            {
+                _previewShellLoaded = false;
+                MarkdownWebView?.Close();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error tearing down preview: {ex.Message}");
+            }
+        }
+
         private void MenuPreview_Click(object sender, RoutedEventArgs e)
         {
             if (sender is ToggleMenuFlyoutItem item) SetMarkdownPreview(item.IsChecked);
@@ -1243,6 +1294,15 @@ namespace Skrib
                 // feature whose cost is useless for a local, offline-rendered document.
                 if (_previewEnvironment == null)
                 {
+                    // WinUI 3 ignores DefaultBackgroundColor=Transparent on its own: the
+                    // browser must be launched with an alpha-0 default background
+                    // (microsoft-ui-xaml#6527). Must be set before the environment exists.
+                    try
+                    {
+                        Environment.SetEnvironmentVariable("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--default-background-color=00000000");
+                    }
+                    catch (Exception) { // Environment block denied: transparent mode may fall back to opaque.
+                    }
                     _previewEnvironment = await Microsoft.Web.WebView2.Core.CoreWebView2Environment.CreateWithOptionsAsync(
                         null, null,
                         new Microsoft.Web.WebView2.Core.CoreWebView2EnvironmentOptions
@@ -1287,12 +1347,15 @@ namespace Skrib
             try
             {
                 bool dark = (this.Content as FrameworkElement)?.ActualTheme == ElementTheme.Dark;
+                bool transparent = EditorBgToggle == null || EditorBgToggle.IsOn;
                 var message = new
                 {
                     type = "render",
                     html = MarkdownPreviewRenderer.ToHtmlFragment(Editor.Text ?? string.Empty),
                     dark,
-                    accent = GetAccentHex()
+                    accent = GetAccentHex(),
+                    // Empty in transparent mode: the window backdrop shows through.
+                    bg = transparent ? string.Empty : ToHex(GetOpaqueEditorColor())
                 };
                 MarkdownWebView.CoreWebView2.PostWebMessageAsJson(System.Text.Json.JsonSerializer.Serialize(message));
             }
@@ -1300,6 +1363,11 @@ namespace Skrib
             {
                 System.Diagnostics.Debug.Write($"Error updating Markdown preview: {ex.Message}");
             }
+        }
+
+        private static string ToHex(Windows.UI.Color color)
+        {
+            return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
         }
 
         // Accent color of the current theme, as #RRGGBB (links, quote borders).
