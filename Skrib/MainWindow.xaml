@@ -276,6 +276,7 @@
                 why the Edit menu items that open it are disabled while previewing.
             -->
             <Border x:Name="SearchBar" Grid.Row="1" Visibility="Collapsed"
+                    MaxWidth="640" HorizontalAlignment="Center"
                     BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
                     BorderThickness="0,0,0,1"
                     Padding="8,4">
