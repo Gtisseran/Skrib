@@ -13,6 +13,7 @@ using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 using Windows.System;
+using Windows.ApplicationModel.DataTransfer;
 
 namespace Skrib
 {
@@ -50,6 +51,7 @@ namespace Skrib
             SetMinimumWindowSize();
             SetWindowIcon();
             RegisterWindowClosing();
+            RegisterFileDrop();
             ApplySavedTheme();
             ApplySavedBackdrop();
             ApplySavedLanguage();
@@ -1495,6 +1497,65 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             {
                 await ShowErrorAsync(S("error.readFile"), ex.Message);
             }
+        }
+
+        // Accepts files dragged from Explorer (and other shell sources) onto the window.
+        private void RegisterFileDrop()
+        {
+            RootGrid.DragOver += RootGrid_DragOver;
+            RootGrid.Drop += RootGrid_Drop;
+        }
+
+        private void RootGrid_DragOver(object sender, DragEventArgs e)
+        {
+            bool accepted = false;
+            try
+            {
+                accepted = e.DataView.Contains(StandardDataFormats.StorageItems);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error inspecting drag payload: {ex.Message}");
+            }
+            e.AcceptedOperation = accepted ? DataPackageOperation.Copy : DataPackageOperation.None;
+            if (accepted)
+            {
+                e.Handled = true;
+            }
+        }
+
+        private async void RootGrid_Drop(object sender, DragEventArgs e)
+        {
+            try
+            {
+                if (!e.DataView.Contains(StandardDataFormats.StorageItems)) return;
+                var items = await e.DataView.GetStorageItemsAsync();
+
+                StorageFile? file = null;
+                foreach (var item in items)
+                {
+                    if (item is StorageFile candidate && IsSupportedTextFile(candidate))
+                    {
+                        file = candidate;
+                        break;
+                    }
+                }
+                if (file == null) return;
+
+                if (!await AskSaveIfNeededAsync()) return;
+                await OpenFileFromStorageFileAsync(file);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error opening dropped file: {ex.Message}");
+            }
+        }
+
+        // Only the text documents the editor can safely open: .txt and .md.
+        private static bool IsSupportedTextFile(StorageFile file)
+        {
+            return string.Equals(file.FileType, ".txt", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(file.FileType, ".md", StringComparison.OrdinalIgnoreCase);
         }
 
         #endregion
