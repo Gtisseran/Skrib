@@ -59,6 +59,7 @@ namespace Skrib
             ApplySavedLanguage();
             UpdateRecentFilesMenu();
             ApplySavedWordWrap();
+            ApplySavedEditorFontSize();
             ApplySavedEditorBg();
             UpdateAboutVersion();
             UpdateCaretInfo();
@@ -110,9 +111,17 @@ namespace Skrib
 
         private void Editor_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
         {
+            var props = e.GetCurrentPoint(Editor).Properties;
+            // Ctrl+wheel zooms the editor text instead of scrolling.
+            if (IsControlDown())
+            {
+                ZoomEditorFont(Editor.FontSize + (props.MouseWheelDelta > 0 ? 1 : -1));
+                e.Handled = true;
+                return;
+            }
+
             var sv = _editorScrollViewer;
             if (sv is null) return;
-            var props = e.GetCurrentPoint(Editor).Properties;
             double delta = props.MouseWheelDelta * EditorWheelScale;
 
             if (IsShiftDown())
@@ -749,6 +758,9 @@ namespace Skrib
             MenuPaste.Text = S("menu.paste");
             MenuSelectAll.Text = S("menu.selectAll");
             MenuView.Title = S("menu.view");
+            MenuZoomIn.Text = S("menu.zoomIn");
+            MenuZoomOut.Text = S("menu.zoomOut");
+            MenuZoomReset.Text = S("menu.zoomReset");
             MenuPreview.Text = S("menu.preview");
             ToolTipService.SetToolTip(PreviewToggleButton, S("menu.preview"));
 
@@ -998,6 +1010,54 @@ namespace Skrib
             bool isOn = EditorBgToggle != null && EditorBgToggle.IsOn;
             EditorBgStateText.Text = isOn ? S("common.on") : S("common.off");
         }
+
+        #region Font Zoom
+
+        // Editor font size zoom bounds; the default matches the XAML FontSize of the TextBox.
+        private const double EditorFontSizeDefault = 14;
+        private const double EditorFontSizeMin = 10;
+        private const double EditorFontSizeMax = 48;
+
+        private void ApplySavedEditorFontSize()
+        {
+            try
+            {
+                if (ApplicationData.Current.LocalSettings.Values["EditorFontSize"] is double size)
+                {
+                    Editor.FontSize = Math.Clamp(size, EditorFontSizeMin, EditorFontSizeMax);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error loading editor font size: {ex.Message}");
+            }
+        }
+
+        // Zooms the editor text and persists it. The Markdown preview keeps its fixed
+        // sizes on purpose: this is an editor-only feature.
+        private void ZoomEditorFont(double newSize)
+        {
+            Editor.FontSize = Math.Clamp(newSize, EditorFontSizeMin, EditorFontSizeMax);
+            try { ApplicationData.Current.LocalSettings.Values["EditorFontSize"] = Editor.FontSize; }
+            catch (Exception ex) { System.Diagnostics.Debug.Write($"Error saving editor font size: {ex.Message}"); }
+        }
+
+        private void ZoomIn_Click(object sender, RoutedEventArgs e)
+        {
+            ZoomEditorFont(Editor.FontSize + 1);
+        }
+
+        private void ZoomOut_Click(object sender, RoutedEventArgs e)
+        {
+            ZoomEditorFont(Editor.FontSize - 1);
+        }
+
+        private void ZoomReset_Click(object sender, RoutedEventArgs e)
+        {
+            ZoomEditorFont(EditorFontSizeDefault);
+        }
+
+        #endregion
 
         #endregion
 

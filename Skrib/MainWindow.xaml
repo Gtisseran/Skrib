@@ -202,6 +202,22 @@
                         </MenuFlyoutItem>
                     </MenuBarItem>
                     <MenuBarItem x:Name="MenuView" Title="Affichage">
+                        <MenuFlyoutItem x:Name="MenuZoomIn" Text="Zoom avant" Click="ZoomIn_Click">
+                            <MenuFlyoutItem.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Add" Modifiers="Control" />
+                            </MenuFlyoutItem.KeyboardAccelerators>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="MenuZoomOut" Text="Zoom arrière" Click="ZoomOut_Click">
+                            <MenuFlyoutItem.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Subtract" Modifiers="Control" />
+                            </MenuFlyoutItem.KeyboardAccelerators>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="MenuZoomReset" Text="Taille par défaut" Click="ZoomReset_Click">
+                            <MenuFlyoutItem.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Number0" Modifiers="Control" />
+                            </MenuFlyoutItem.KeyboardAccelerators>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutSeparator />
                         <ToggleMenuFlyoutItem x:Name="MenuPreview" Text="Aperçu Markdown" Click="MenuPreview_Click">
                             <MenuFlyoutItem.KeyboardAccelerators>
                                 <KeyboardAccelerator Key="V" Modifiers="Control,Shift" />
