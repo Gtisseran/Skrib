@@ -72,6 +72,10 @@ namespace Skrib
             Editor.AddHandler(UIElement.PointerWheelChangedEvent, new PointerEventHandler(Editor_PointerWheelChanged), true);
         }
 
+        // Fraction of the raw wheel delta (±120 per notch) applied per tick,
+        // so a single notch moves the editor less than the OS default.
+        private const double EditorWheelScale = 0.5;
+
         private static bool IsShiftDown()
         {
             var state = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Shift);
@@ -83,13 +87,14 @@ namespace Skrib
             var sv = _editorScrollViewer;
             if (sv is null) return;
             var props = e.GetCurrentPoint(Editor).Properties;
+            double delta = props.MouseWheelDelta * EditorWheelScale;
 
             if (IsShiftDown())
             {
                 // Shift+wheel: horizontal, forward scrolls left (Windows convention).
                 if (sv.ScrollableWidth <= 0) return;
                 if (!_smoothHorizontalAnimating) _smoothHorizontalTarget = sv.HorizontalOffset;
-                _smoothHorizontalTarget = Math.Clamp(_smoothHorizontalTarget - props.MouseWheelDelta, 0, sv.ScrollableWidth);
+                _smoothHorizontalTarget = Math.Clamp(_smoothHorizontalTarget - delta, 0, sv.ScrollableWidth);
                 _smoothHorizontalAnimating = true;
                 sv.ChangeView(_smoothHorizontalTarget, null, null, false);
             }
@@ -97,7 +102,7 @@ namespace Skrib
             {
                 if (sv.ScrollableHeight <= 0) return;
                 if (!_smoothVerticalAnimating) _smoothVerticalTarget = sv.VerticalOffset;
-                _smoothVerticalTarget = Math.Clamp(_smoothVerticalTarget - props.MouseWheelDelta, 0, sv.ScrollableHeight);
+                _smoothVerticalTarget = Math.Clamp(_smoothVerticalTarget - delta, 0, sv.ScrollableHeight);
                 _smoothVerticalAnimating = true;
                 sv.ChangeView(null, _smoothVerticalTarget, null, false);
             }
