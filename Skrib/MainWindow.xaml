@@ -11,6 +11,72 @@
 
 
     <Grid x:Name="RootGrid" KeyDown="RootGrid_KeyDown">
+        <Grid.Resources>
+            <!--
+                Minimal scrollbar, shared by the editor and the Markdown preview.
+                Structure copied from the WinUI ScrollBar template contract (the control
+                positions the thumb through the LargeDecrease/Thumb/LargeIncrease rows of
+                VerticalRoot/HorizontalRoot), stripped down to: a thin 6px rounded thumb,
+                always visible, no track, no arrow buttons, no expand animation.
+            -->
+            <ControlTemplate x:Key="MinimalScrollBarThumbTemplate" TargetType="Thumb">
+                <Rectangle Fill="{TemplateBinding Background}" RadiusX="3" RadiusY="3" />
+            </ControlTemplate>
+            <Style x:Key="MinimalScrollBarStyle" TargetType="ScrollBar">
+                <Setter Property="MinWidth" Value="8" />
+                <Setter Property="MinHeight" Value="8" />
+                <Setter Property="IsTabStop" Value="False" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Grid x:Name="Root">
+                                <Grid.Resources>
+                                    <ControlTemplate x:Key="MinimalScrollBarRepeatButtonTemplate" TargetType="RepeatButton">
+                                        <Grid Background="Transparent" />
+                                    </ControlTemplate>
+                                </Grid.Resources>
+                                <Grid x:Name="HorizontalRoot" Background="Transparent" IsHitTestVisible="False" Visibility="Collapsed">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Rectangle x:Name="HorizontalTrackRect" Grid.ColumnSpan="3" Fill="Transparent" Opacity="0" />
+                                    <RepeatButton x:Name="HorizontalLargeDecrease" Grid.Column="0" Width="0" Opacity="0" IsTabStop="False" Interval="50" AllowFocusOnInteraction="False" Template="{StaticResource MinimalScrollBarRepeatButtonTemplate}" />
+                                    <Thumb x:Name="HorizontalThumb" Grid.Column="1" Opacity="1" Height="6" MinWidth="30" Background="{ThemeResource ScrollBarThumbBackground}" CornerRadius="3" Template="{StaticResource MinimalScrollBarThumbTemplate}">
+                                        <Thumb.RenderTransform>
+                                            <TranslateTransform x:Name="HorizontalThumbTransform" Y="1" />
+                                        </Thumb.RenderTransform>
+                                    </Thumb>
+                                    <RepeatButton x:Name="HorizontalLargeIncrease" Grid.Column="2" Opacity="0" IsTabStop="False" Interval="50" AllowFocusOnInteraction="False" Template="{StaticResource MinimalScrollBarRepeatButtonTemplate}" />
+                                </Grid>
+                                <Grid x:Name="VerticalRoot" Background="Transparent" IsHitTestVisible="False">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <Rectangle x:Name="VerticalTrackRect" Grid.RowSpan="3" Fill="Transparent" Opacity="0" />
+                                    <RepeatButton x:Name="VerticalLargeDecrease" Grid.Row="0" Height="0" Opacity="0" IsTabStop="False" Interval="50" AllowFocusOnInteraction="False" Template="{StaticResource MinimalScrollBarRepeatButtonTemplate}" />
+                                    <Thumb x:Name="VerticalThumb" Grid.Row="1" Opacity="1" Width="6" MinHeight="30" Background="{ThemeResource ScrollBarThumbBackground}" CornerRadius="3" RenderTransformOrigin="1,0.5" Template="{StaticResource MinimalScrollBarThumbTemplate}">
+                                        <Thumb.RenderTransform>
+                                            <TranslateTransform x:Name="VerticalThumbTransform" X="1" />
+                                        </Thumb.RenderTransform>
+                                    </Thumb>
+                                    <RepeatButton x:Name="VerticalLargeIncrease" Grid.Row="2" Opacity="0" IsTabStop="False" Interval="50" AllowFocusOnInteraction="False" Template="{StaticResource MinimalScrollBarRepeatButtonTemplate}" />
+                                </Grid>
+                                <Grid x:Name="HorizontalPanningRoot" MinWidth="24" Visibility="Collapsed" Opacity="0">
+                                    <Border x:Name="HorizontalPanningThumb" VerticalAlignment="Bottom" HorizontalAlignment="Left" Background="{ThemeResource ScrollBarPanningThumbBackground}" Height="2" MinWidth="32" Margin="0,2,0,2" />
+                                </Grid>
+                                <Grid x:Name="VerticalPanningRoot" MinHeight="24" Visibility="Collapsed" Opacity="0">
+                                    <Border x:Name="VerticalPanningThumb" VerticalAlignment="Top" HorizontalAlignment="Right" Background="{ThemeResource ScrollBarPanningThumbBackground}" Width="2" MinHeight="32" Margin="2,0" />
+                                </Grid>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -186,6 +252,8 @@
                                 <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#202020"/>
                             </ResourceDictionary>
                         </ResourceDictionary.ThemeDictionaries>
+                        <!-- Same minimal scrollbar as the preview. -->
+                        <Style TargetType="ScrollBar" BasedOn="{StaticResource MinimalScrollBarStyle}" />
                     </ResourceDictionary>
                 </TextBox.Resources>
             </TextBox>
@@ -203,6 +271,10 @@
                     BorderThickness="1"
                     CornerRadius="8">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="16">
+                    <ScrollViewer.Resources>
+                        <!-- Same minimal scrollbar as the editor. -->
+                        <Style TargetType="ScrollBar" BasedOn="{StaticResource MinimalScrollBarStyle}" />
+                    </ScrollViewer.Resources>
                     <RichTextBlock x:Name="MarkdownPreview"
                         IsTextSelectionEnabled="True"
                         TextWrapping="Wrap"
