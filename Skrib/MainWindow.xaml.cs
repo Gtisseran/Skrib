@@ -908,6 +908,8 @@ namespace Skrib
                 catch (Exception ex) { System.Diagnostics.Debug.Write($"Error saving editor background setting: {ex.Message}"); }
             }
             // Force ThemeResource re-resolution so the overridden brushes apply immediately.
+            // WinUI has no public API to invalidate theme-resource references on an element,
+            // so flipping RequestedTheme and restoring it is the established workaround.
             var currentTheme = Editor.RequestedTheme;
             Editor.RequestedTheme = currentTheme == ElementTheme.Dark ? ElementTheme.Light : ElementTheme.Dark;
             Editor.RequestedTheme = currentTheme;
@@ -990,6 +992,9 @@ namespace Skrib
             bool isOn = EditorBgToggle != null && EditorBgToggle.IsOn;
             EditorBgStateText.Text = isOn ? S("common.on") : S("common.off");
         }
+
+        #endregion
+
         private void UpdateTitle()
         {
             var untitled = S("doc.untitled");
@@ -1458,6 +1463,8 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
         }
 
         #endregion
+
+        #region File Activation
 
         public async Task OpenFileFromStorageFileAsync(StorageFile file)
         {

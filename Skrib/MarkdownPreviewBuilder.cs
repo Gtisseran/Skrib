@@ -301,13 +301,22 @@ namespace Skrib
             p.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
         }
 
+        // Palette brushes are shared across all runs: the preview only ever uses a handful
+        // of fixed colors, so caching avoids allocating a SolidColorBrush per run rendered.
+        private static readonly Dictionary<Color, SolidColorBrush> BrushCache = new();
+
         private static Brush Brush(bool light, byte alphaLight, byte rLight, byte gLight, byte bLight,
             byte alphaDark, byte rDark, byte gDark, byte bDark)
         {
             var color = light
                 ? Color.FromArgb(alphaLight, rLight, gLight, bLight)
                 : Color.FromArgb(alphaDark, rDark, gDark, bDark);
-            return new SolidColorBrush(color);
+            if (!BrushCache.TryGetValue(color, out var brush))
+            {
+                brush = new SolidColorBrush(color);
+                BrushCache[color] = brush;
+            }
+            return brush;
         }
 
         private static async void OpenLink(string url)
