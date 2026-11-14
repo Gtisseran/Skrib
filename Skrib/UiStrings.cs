@@ -26,6 +26,8 @@ public static class UiStrings
         new("menu.file", "File", "Fichier", "Archivo"),
         new("menu.new", "New", "Nouveau", "Nuevo"),
         new("menu.open", "Open...", "Ouvrir...", "Abrir..."),
+        new("recent.title", "Recent files", "Fichiers récents", "Archivos recientes"),
+        new("recent.clear", "Clear list", "Vider la liste", "Vaciar la lista"),
         new("menu.save", "Save", "Enregistrer", "Guardar"),
         new("menu.saveAs", "Save As...", "Enregistrer sous...", "Guardar como..."),
         new("menu.exit", "Exit", "Quitter", "Salir"),

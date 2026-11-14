@@ -142,6 +142,8 @@
                                 <KeyboardAccelerator Key="O" Modifiers="Control" />
                             </MenuFlyoutItem.KeyboardAccelerators>
                         </MenuFlyoutItem>
+                        <!-- Items are built in code from the persisted recent-files list. -->
+                        <MenuFlyoutSubItem x:Name="MenuRecent" Text="Fichiers récents" Visibility="Collapsed" />
                         <MenuFlyoutItem x:Name="MenuSave" Text="Enregistrer" Click="SaveFile_Click">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="Save" />

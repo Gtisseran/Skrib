@@ -5,12 +5,14 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Windowing;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using Windows.Storage.AccessCache;
 using WinRT.Interop;
 using Windows.System;
 using Windows.ApplicationModel.DataTransfer;
@@ -55,6 +57,7 @@ namespace Skrib
             ApplySavedTheme();
             ApplySavedBackdrop();
             ApplySavedLanguage();
+            UpdateRecentFilesMenu();
             ApplySavedWordWrap();
             ApplySavedEditorBg();
             UpdateAboutVersion();
@@ -733,6 +736,7 @@ namespace Skrib
             MenuFile.Title = S("menu.file");
             MenuNew.Text = S("menu.new");
             MenuOpen.Text = S("menu.open");
+            MenuRecent.Text = S("recent.title");
             MenuSave.Text = S("menu.save");
             MenuSaveAs.Text = S("menu.saveAs");
             MenuExit.Text = S("menu.exit");
@@ -1134,6 +1138,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
                     {
                         var text = await FileIO.ReadTextAsync(file);
                         _currentFile = file;
+                        AddToRecentFiles(file);
                         SetEditorText(text);
                     }
                     catch (Exception ex)
@@ -1204,6 +1209,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             if (file == null) return false;
             await FileIO.WriteTextAsync(file, Editor.Text);
             _currentFile = file;
+            AddToRecentFiles(file);
             _isDirty = false;
             UpdateTitle();
             return true;
@@ -1478,6 +1484,121 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
 
         #endregion
 
+        #region Recent Files
+
+        // Files opened in earlier sessions, reachable after relaunch. The FutureAccessList
+        // token is what grants access to a file picked before; the path is display-only.
+        private void AddToRecentFiles(StorageFile file)
+        {
+            try
+            {
+                var entries = LoadRecentFiles();
+                string token = StorageApplicationPermissions.FutureAccessList.Add(file);
+                entries = RecentFilesList.Push(entries, token, file.Path, out var evicted);
+                FreeRecentFileTokens(evicted);
+                ApplicationData.Current.LocalSettings.Values["RecentFiles"] = RecentFilesList.ToJson(entries);
+                UpdateRecentFilesMenu(entries);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error updating recent files: {ex.Message}");
+            }
+        }
+
+        private void RemoveRecentFile(string token)
+        {
+            try
+            {
+                var entries = RecentFilesList.RemoveByToken(LoadRecentFiles(), token);
+                try { StorageApplicationPermissions.FutureAccessList.Remove(token); }
+                catch (Exception ex) { System.Diagnostics.Debug.Write($"Error freeing recent file token: {ex.Message}"); }
+                ApplicationData.Current.LocalSettings.Values["RecentFiles"] = RecentFilesList.ToJson(entries);
+                UpdateRecentFilesMenu(entries);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error removing recent file: {ex.Message}");
+            }
+        }
+
+        private void ClearRecentFiles_Click(object sender, RoutedEventArgs e)
+        {
+            var entries = LoadRecentFiles();
+            FreeRecentFileTokens(entries);
+            ApplicationData.Current.LocalSettings.Values["RecentFiles"] = RecentFilesList.ToJson(new List<RecentFilesList.Entry>());
+            UpdateRecentFilesMenu(new List<RecentFilesList.Entry>());
+        }
+
+        private static List<RecentFilesList.Entry> LoadRecentFiles()
+        {
+            try
+            {
+                return RecentFilesList.Parse(ApplicationData.Current.LocalSettings.Values["RecentFiles"] as string);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Write($"Error loading recent files: {ex.Message}");
+                return new List<RecentFilesList.Entry>();
+            }
+        }
+
+        private static void FreeRecentFileTokens(List<RecentFilesList.Entry> entries)
+        {
+            foreach (var entry in entries)
+            {
+                try { StorageApplicationPermissions.FutureAccessList.Remove(entry.Token); }
+                catch (Exception ex) { System.Diagnostics.Debug.Write($"Error freeing recent file token: {ex.Message}"); }
+            }
+        }
+
+        // Rebuilds the "Recent files" submenu (hidden while the list is empty).
+        private void UpdateRecentFilesMenu()
+        {
+            UpdateRecentFilesMenu(LoadRecentFiles());
+        }
+
+        private void UpdateRecentFilesMenu(List<RecentFilesList.Entry> entries)
+        {
+            MenuRecent.Items.Clear();
+            foreach (var entry in entries)
+            {
+                var item = new MenuFlyoutItem { Text = Path.GetFileName(entry.Path), Tag = entry.Token };
+                ToolTipService.SetToolTip(item, entry.Path);
+                item.Click += RecentFile_Click;
+                MenuRecent.Items.Add(item);
+            }
+            if (entries.Count > 0)
+            {
+                MenuRecent.Items.Add(new MenuFlyoutSeparator());
+                var clear = new MenuFlyoutItem { Text = S("recent.clear") };
+                clear.Click += ClearRecentFiles_Click;
+                MenuRecent.Items.Add(clear);
+            }
+            MenuRecent.Visibility = entries.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private async void RecentFile_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuFlyoutItem item || item.Tag is not string token) return;
+            StorageFile? file;
+            try
+            {
+                file = await StorageApplicationPermissions.FutureAccessList.GetFileAsync(token);
+            }
+            catch (Exception ex)
+            {
+                // A moved or deleted file invalidates its entry: drop it from the menu.
+                System.Diagnostics.Debug.Write($"Error opening recent file: {ex.Message}");
+                RemoveRecentFile(token);
+                return;
+            }
+
+            if (!await AskSaveIfNeededAsync()) return;
+            await OpenFileFromStorageFileAsync(file);
+        }
+
+        #endregion
+
         #region File Activation
 
         public async Task OpenFileFromStorageFileAsync(StorageFile file)
@@ -1491,6 +1612,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
                 }
                 var text = await FileIO.ReadTextAsync(file);
                 _currentFile = file;
+                AddToRecentFiles(file);
                 SetEditorText(text);
             }
             catch (Exception ex)

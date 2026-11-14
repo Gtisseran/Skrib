@@ -30,6 +30,7 @@
     <Compile Include="..\Skrib\SettingsDefaults.cs" Link="SettingsDefaults.cs" />
     <Compile Include="..\Skrib\MarkdownPreviewModel.cs" Link="MarkdownPreviewModel.cs" />
     <Compile Include="..\Skrib\UiStrings.cs" Link="UiStrings.cs" />
+    <Compile Include="..\Skrib\RecentFilesList.cs" Link="RecentFilesList.cs" />
   </ItemGroup>
 
   <!-- Lets the translation coverage tests locate the sources they inspect. -->
