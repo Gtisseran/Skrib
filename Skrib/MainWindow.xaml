@@ -114,6 +114,7 @@
         <Grid x:Name="MainView" Grid.Row="1" Visibility="Visible">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
@@ -200,6 +201,21 @@
                                 <SymbolIcon Symbol="SelectAll" />
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
+                        <MenuFlyoutSeparator />
+                        <!-- Ctrl+F / Ctrl+H are safe here: the TextBox does not handle them natively. -->
+                        <MenuFlyoutItem x:Name="MenuSearch" Text="Rechercher" Click="MenuSearch_Click">
+                            <MenuFlyoutItem.Icon>
+                                <SymbolIcon Symbol="Find" />
+                            </MenuFlyoutItem.Icon>
+                            <MenuFlyoutItem.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="F" Modifiers="Control" />
+                            </MenuFlyoutItem.KeyboardAccelerators>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="MenuReplace" Text="Remplacer" Click="MenuReplace_Click">
+                            <MenuFlyoutItem.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="H" Modifiers="Control" />
+                            </MenuFlyoutItem.KeyboardAccelerators>
+                        </MenuFlyoutItem>
                     </MenuBarItem>
                     <MenuBarItem x:Name="MenuView" Title="Affichage">
                         <MenuFlyoutItem x:Name="MenuZoomIn" Text="Zoom avant" Click="ZoomIn_Click">
@@ -255,7 +271,58 @@
                 </StackPanel>
             </Grid>
 
-            <TextBox x:Name="Editor" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="14" PlaceholderText="Commencez à écrire…" TextChanged="Editor_TextChanged" SelectionChanged="Editor_SelectionChanged" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollMode="Enabled" ScrollViewer.HorizontalScrollMode="Enabled">
+            <!--
+                Find / replace bar (Ctrl+F / Ctrl+H). Targets the editor only, which is
+                why the Edit menu items that open it are disabled while previewing.
+            -->
+            <Border x:Name="SearchBar" Grid.Row="1" Visibility="Collapsed"
+                    BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                    BorderThickness="0,0,0,1"
+                    Padding="8,4">
+                <StackPanel Spacing="6">
+                    <Grid ColumnSpacing="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="SearchTextBox" Grid.Column="0" MinWidth="200" MaxWidth="400"
+                                 PlaceholderText="Trouver..."
+                                 KeyDown="SearchTextBox_KeyDown" TextChanged="SearchTextBox_TextChanged" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock x:Name="SearchCountText" Text="" FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       VerticalAlignment="Center" Margin="4,0" />
+                            <Button x:Name="SearchPreviousButton" Click="SearchPrevious_Click" Padding="6,4"
+                                    Background="Transparent" BorderThickness="0" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE70E;" FontSize="14" />
+                            </Button>
+                            <Button x:Name="SearchNextButton" Click="SearchNext_Click" Padding="6,4"
+                                    Background="Transparent" BorderThickness="0" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE70D;" FontSize="14" />
+                            </Button>
+                            <Button x:Name="SearchCloseButton" Click="SearchClose_Click" Padding="6,4"
+                                    Background="Transparent" BorderThickness="0" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE711;" FontSize="14" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <Grid x:Name="ReplaceRow" Visibility="Collapsed" ColumnSpacing="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ReplaceTextBox" Grid.Column="0" MinWidth="200" MaxWidth="400"
+                                 PlaceholderText="Remplacer par..."
+                                 KeyDown="ReplaceTextBox_KeyDown" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                            <Button x:Name="ReplaceButton" Click="ReplaceOne_Click" Padding="8,4" VerticalAlignment="Center" Content="Remplacer" />
+                            <Button x:Name="ReplaceAllButton" Click="ReplaceAll_Click" Padding="8,4" VerticalAlignment="Center" Content="Tout remplacer" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBox x:Name="Editor" Grid.Row="2" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="14" PlaceholderText="Commencez à écrire…" TextChanged="Editor_TextChanged" SelectionChanged="Editor_SelectionChanged" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollMode="Enabled" ScrollViewer.HorizontalScrollMode="Enabled">
                 <TextBox.Resources>
                     <ResourceDictionary>
                         <ResourceDictionary.ThemeDictionaries>
@@ -283,7 +350,7 @@
                 backdrop shows through with the transparency setting, themes follow the
                 theme resources automatically, and no browser process is spawned.
             -->
-            <Border x:Name="MarkdownPreviewHost" Grid.Row="1" Visibility="Collapsed"
+            <Border x:Name="MarkdownPreviewHost" Grid.Row="2" Visibility="Collapsed"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
@@ -301,7 +368,7 @@
                 </ScrollViewer>
             </Border>
 
-            <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" Padding="10,4">
+            <Border Grid.Row="3" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" Padding="10,4">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />

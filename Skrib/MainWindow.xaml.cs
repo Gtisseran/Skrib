@@ -395,6 +395,12 @@ namespace Skrib
                 e.Handled = true;
                 return;
             }
+            if (e.Key == VirtualKey.Escape && SearchBar.Visibility == Visibility.Visible)
+            {
+                CloseSearch();
+                e.Handled = true;
+                return;
+            }
             // Ctrl+A while previewing selects the whole rendered document.
             if (_showMarkdownPreview && e.Key == VirtualKey.A && IsControlDown())
             {
@@ -771,6 +777,16 @@ namespace Skrib
             if (_contextPaste != null) _contextPaste.Text = S("menu.paste");
             if (_contextSelectAll != null) _contextSelectAll.Text = S("menu.selectAll");
 
+            MenuSearch.Text = S("menu.search");
+            MenuReplace.Text = S("menu.replace");
+            ReplaceButton.Content = S("search.replaceButton");
+            ReplaceAllButton.Content = S("search.replaceAll");
+            SearchTextBox.PlaceholderText = S("search.findPlaceholder");
+            ReplaceTextBox.PlaceholderText = S("search.replacePlaceholder");
+            ToolTipService.SetToolTip(SearchNextButton, S("search.next"));
+            ToolTipService.SetToolTip(SearchPreviousButton, S("search.previous"));
+            ToolTipService.SetToolTip(SearchCloseButton, S("search.close"));
+
             ToolTipService.SetToolTip(SettingsButton, S("settings.title"));
             ToolTipService.SetToolTip(BackButton, S("settings.back"));
             SettingsTitleText.Text = S("settings.title");
@@ -1059,6 +1075,185 @@ namespace Skrib
 
         #endregion
 
+        #region Search and Replace
+
+        // 0-based position of the current match among all matches (for the "n of m" counter).
+        private int _searchMatchIndex;
+
+        // Shows the bar; withReplace also reveals the replace row.
+        private void ShowSearch(bool withReplace)
+        {
+            SearchBar.Visibility = Visibility.Visible;
+            ReplaceRow.Visibility = withReplace ? Visibility.Visible : Visibility.Collapsed;
+            SearchTextBox.Focus(FocusState.Programmatic);
+            SearchTextBox.SelectAll();
+            UpdateSearchCount();
+        }
+
+        private void CloseSearch()
+        {
+            SearchBar.Visibility = Visibility.Collapsed;
+            Editor.Focus(FocusState.Programmatic);
+        }
+
+        private List<int> CurrentMatches()
+        {
+            return SearchHelper.MatchStarts(Editor.Text, SearchTextBox.Text);
+        }
+
+        // Selects the match at matchIndex and refreshes the counter. With an empty
+        // result list it only refreshes the counter (empty state).
+        private void SelectMatchAt(List<int> starts, int matchIndex)
+        {
+            if (starts.Count == 0)
+            {
+                _searchMatchIndex = 0;
+                UpdateSearchCount();
+                return;
+            }
+            matchIndex = Math.Clamp(matchIndex, 0, starts.Count - 1);
+            _searchMatchIndex = matchIndex;
+            Editor.Select(starts[matchIndex], SearchTextBox.Text.Length);
+            UpdateSearchCount();
+        }
+
+        private void FindNextMatch()
+        {
+            var starts = CurrentMatches();
+            int pos = Editor.SelectionStart + Editor.SelectionLength;
+            int index = -1;
+            for (int i = 0; i < starts.Count; i++)
+            {
+                if (starts[i] >= pos) { index = i; break; }
+            }
+            // Wrap around to the first match when nothing follows the caret.
+            if (index < 0) index = 0;
+            SelectMatchAt(starts, index);
+        }
+
+        private void FindPreviousMatch()
+        {
+            var starts = CurrentMatches();
+            int index = -1;
+            for (int i = starts.Count - 1; i >= 0; i--)
+            {
+                if (starts[i] < Editor.SelectionStart) { index = i; break; }
+            }
+            // Wrap around to the last match when nothing precedes the caret.
+            if (index < 0) index = starts.Count - 1;
+            SelectMatchAt(starts, index);
+        }
+
+        private void UpdateSearchCount()
+        {
+            string query = SearchTextBox.Text;
+            if (query.Length == 0)
+            {
+                SearchCountText.Text = string.Empty;
+                return;
+            }
+            int total = SearchHelper.CountMatches(Editor.Text, query);
+            SearchCountText.Text = total == 0
+                ? S("search.noMatches")
+                : string.Format(S("search.matches"), _searchMatchIndex + 1, total);
+        }
+
+        private void SearchTextBox_KeyDown(object sender, KeyRoutedEventArgs e)
+        {
+            if (e.Key == VirtualKey.Enter)
+            {
+                if (IsShiftDown()) FindPreviousMatch(); else FindNextMatch();
+                e.Handled = true;
+            }
+            else if (e.Key == VirtualKey.Escape)
+            {
+                CloseSearch();
+                e.Handled = true;
+            }
+        }
+
+        private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            // A new query restarts the search from the first match.
+            SelectMatchAt(CurrentMatches(), 0);
+        }
+
+        private void ReplaceTextBox_KeyDown(object sender, KeyRoutedEventArgs e)
+        {
+            if (e.Key == VirtualKey.Enter)
+            {
+                ReplaceCurrentMatch();
+                e.Handled = true;
+            }
+            else if (e.Key == VirtualKey.Escape)
+            {
+                CloseSearch();
+                e.Handled = true;
+            }
+        }
+
+        private void MenuSearch_Click(object sender, RoutedEventArgs e)
+        {
+            ShowSearch(false);
+        }
+
+        private void MenuReplace_Click(object sender, RoutedEventArgs e)
+        {
+            ShowSearch(true);
+        }
+
+        private void SearchNext_Click(object sender, RoutedEventArgs e)
+        {
+            FindNextMatch();
+        }
+
+        private void SearchPrevious_Click(object sender, RoutedEventArgs e)
+        {
+            FindPreviousMatch();
+        }
+
+        private void SearchClose_Click(object sender, RoutedEventArgs e)
+        {
+            CloseSearch();
+        }
+
+        private void ReplaceOne_Click(object sender, RoutedEventArgs e)
+        {
+            ReplaceCurrentMatch();
+        }
+
+        private void ReplaceCurrentMatch()
+        {
+            string query = SearchTextBox.Text;
+            if (query.Length == 0) return;
+
+            // If the current selection is a match, replace it before jumping to the next one.
+            if (Editor.SelectionLength == query.Length &&
+                string.Equals(Editor.SelectedText, query, StringComparison.OrdinalIgnoreCase))
+            {
+                Editor.SelectedText = ReplaceTextBox.Text;
+                _isDirty = true;
+            }
+            FindNextMatch();
+        }
+
+        private void ReplaceAll_Click(object sender, RoutedEventArgs e)
+        {
+            string query = SearchTextBox.Text;
+            if (query.Length == 0) return;
+            string updated = SearchHelper.ReplaceAll(Editor.Text, query, ReplaceTextBox.Text);
+            if (updated == Editor.Text) return;
+
+            _suppressDirty = true;
+            try { Editor.Text = updated; }
+            finally { _suppressDirty = false; }
+            _isDirty = true;
+            QueueUiRefresh();
+            UpdateSearchCount();
+        }
+
+        #endregion
+
         #endregion
 
         private void UpdateTitle()
@@ -1137,6 +1332,10 @@ namespace Skrib
             }
             _isDirty = true;
             QueueUiRefresh();
+            if (SearchBar.Visibility == Visibility.Visible)
+            {
+                UpdateSearchCount();
+            }
         }
 
         private void Editor_SelectionChanged(object sender, RoutedEventArgs e)
