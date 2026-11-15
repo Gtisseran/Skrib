@@ -24,7 +24,7 @@ namespace Skrib
         private StorageFile? _currentFile;
         private bool _isDirty;
         private bool _showMarkdownPreview;
-        private readonly System.Collections.Generic.Dictionary<string, Microsoft.UI.Xaml.Media.Brush?> _origEditorBgBrushes = new();
+        private readonly Dictionary<string, Brush?> _origEditorBgBrushes = new();
         private string _currentLang = "fr";
         private bool _isInitialized = false;
         private bool _suppressDirty;
@@ -37,6 +37,12 @@ namespace Skrib
         private MenuFlyoutItem? _contextSelectAll;
         private bool? _settingsWideLayout;
         private bool? _settingsComboBoxesStacked;
+        // Last snapped widths actually written below; re-writing the same GridLength
+        // would still invalidate the grids and re-measure the page on every resize tick.
+        private double? _settingsAboutWidth;
+        private double? _settingsThemeComboWidth;
+        private double? _settingsComboWidth;
+        private double? _titleMaxWidth;
         private ScrollViewer? _editorScrollViewer;
         private double _smoothVerticalTarget;
         private double _smoothHorizontalTarget;
@@ -49,6 +55,10 @@ namespace Skrib
         {
             this.InitializeComponent();
             ConfigureCustomTitleBar();
+            // Keeps the content tracking the window during a resize drag (coalesced
+            // layout ticks per frame) and removes the black bands that flash at the
+            // window edges (platform behavior, see ResizeHelper).
+            ResizeHelper.Attach(WindowNative.GetWindowHandle(this), () => RootGrid.UpdateLayout());
             InitializeContextMenu();
             SetMinimumWindowSize();
             SetWindowIcon();
@@ -97,6 +107,7 @@ namespace Skrib
 
             _editorScrollViewer = sv;
             sv.ViewChanged += EditorScrollViewer_ViewChanged;
+            UseArrowCursorOverScrollBars(Editor);
         }
 
         // Fraction of the raw wheel delta (±120 per notch) applied per tick,
@@ -166,6 +177,42 @@ namespace Skrib
             return null;
         }
 
+        private static List<T> FindDescendants<T>(DependencyObject parent) where T : DependencyObject
+        {
+            var found = new List<T>();
+            int count = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T match) found.Add(match);
+                found.AddRange(FindDescendants<T>(child));
+            }
+            return found;
+        }
+
+        // Cached ProtectedCursor property (protected on UIElement, hence the reflection).
+        private static readonly System.Reflection.PropertyInfo? ProtectedCursorProperty =
+            typeof(UIElement).GetProperty("ProtectedCursor",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+
+        // The TextBox paints the I-beam across its whole bounds, scrollbars included;
+        // re-assert the standard arrow on the editor's scrollbars.
+        private static void UseArrowCursorOverScrollBars(DependencyObject root)
+        {
+            foreach (var bar in FindDescendants<ScrollBar>(root))
+            {
+                try
+                {
+                    ProtectedCursorProperty?.SetValue(bar,
+                        Microsoft.UI.Input.InputSystemCursor.Create(Microsoft.UI.Input.InputSystemCursorShape.Arrow));
+                }
+                catch (Exception ex)
+                {
+                    Debug.Write($"Error setting scrollbar cursor: {ex.Message}");
+                }
+            }
+        }
+
         private void ConfigureCustomTitleBar()
         {
             this.ExtendsContentIntoTitleBar = true;
@@ -179,7 +226,7 @@ namespace Skrib
                     UpdateTitleBarButtons();
                     try { ApplyEditorBg(EditorBgToggle != null && EditorBgToggle.IsOn, save: false); } catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.Write($"Error in theme change handler: {ex.Message}");
+                        Debug.Write($"Error in theme change handler: {ex.Message}");
                     }
                     if (_showMarkdownPreview)
                     {
@@ -191,6 +238,21 @@ namespace Skrib
                     this.SetTitleBar(titleBar);
                 }
             }
+
+            // The file name is centered across the whole title bar; clamp its width so
+            // a long name trims (with its ellipsis) instead of running into the brand
+            // on the left or the caption buttons (~141 px) on the right. The 8 px step
+            // keeps a drag-resize from re-invalidating the title layout on every pixel
+            // (same technique as the settings column widths).
+            RootGrid.SizeChanged += (s, e) =>
+            {
+                double maxWidth = Math.Floor(Math.Max(0, e.NewSize.Width - 230) / 8) * 8;
+                if (_titleMaxWidth != maxWidth)
+                {
+                    _titleMaxWidth = maxWidth;
+                    WindowTitleStatus.MaxWidth = maxWidth;
+                }
+            };
 
             UpdateTitleBarButtons();
         }
@@ -217,8 +279,19 @@ namespace Skrib
                 isLight = root.ActualTheme != ElementTheme.Dark;
             }
 
+            // Keeps the DWM sheet behind the content (ResizeHelper) in the app theme
+            // rather than following the system-registry theme.
+            ResizeHelper.SetDarkSheet(hwnd, !isLight);
+            // The strip painted during a resize takes the editor background color so
+            // it blends with the largest surface of the window.
+            ResizeHelper.SetBandColor(GetOpaqueEditorColor());
+
             if (isLight)
             {
+                // Explicit glyph colors: with a transparent button background the
+                // default glyphs can be near-invisible in light mode.
+                titleBarCtrl.ButtonForegroundColor = Microsoft.UI.Colors.Black;
+                titleBarCtrl.ButtonInactiveForegroundColor = Microsoft.UI.Colors.Gray;
                 titleBarCtrl.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(20, 0, 0, 0);
                 titleBarCtrl.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(35, 0, 0, 0);
                 titleBarCtrl.ButtonHoverForegroundColor = Microsoft.UI.Colors.Black;
@@ -226,6 +299,8 @@ namespace Skrib
             }
             else
             {
+                titleBarCtrl.ButtonForegroundColor = Microsoft.UI.Colors.White;
+                titleBarCtrl.ButtonInactiveForegroundColor = Microsoft.UI.Colors.Gray;
                 titleBarCtrl.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(40, 255, 255, 255);
                 titleBarCtrl.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(60, 255, 255, 255);
                 titleBarCtrl.ButtonHoverForegroundColor = Microsoft.UI.Colors.White;
@@ -306,14 +381,14 @@ namespace Skrib
                     catch (Exception ex)
                     {
                         // Log error details for debugging: Console.WriteLine(ex.ToString());
-                        System.Diagnostics.Debug.Write($"Error setting window icon: {ex.Message}");
+                        Debug.Write($"Error setting window icon: {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
                 // Log root cause for debugging
-                System.Diagnostics.Debug.Write($"Error in SetWindowIcon: {ex.Message}");
+                Debug.Write($"Error in SetWindowIcon: {ex.Message}");
             }
         }
 
@@ -349,7 +424,7 @@ namespace Skrib
             catch (Exception ex)
             {
                 // A failed save must never close the window with changes lost.
-                System.Diagnostics.Debug.Write($"Error saving on window close: {ex.Message}");
+                Debug.Write($"Error saving on window close: {ex.Message}");
                 proceed = false;
             }
             finally
@@ -447,7 +522,11 @@ namespace Skrib
                 // snapping between breakpoints, so dragging the window stays fluid.
                 // The 8 px step keeps a drag-resize from relaying out on every pixel.
                 aboutWidth = Math.Clamp(Math.Round(width * 0.30 / 8) * 8, 280, 340);
-                AboutColumn.Width = new GridLength(aboutWidth);
+                if (_settingsAboutWidth != aboutWidth)
+                {
+                    _settingsAboutWidth = aboutWidth;
+                    AboutColumn.Width = new GridLength(aboutWidth);
+                }
             }
 
             if (_settingsWideLayout != isWide)
@@ -463,6 +542,8 @@ namespace Skrib
                 }
                 else
                 {
+                    // Forces a rewrite when the page goes wide again (Width was 0 here).
+                    _settingsAboutWidth = null;
                     AboutColumn.Width = new GridLength(0);
                     SettingsContentGrid.ColumnSpacing = 0;
                     SettingsContentGrid.RowSpacing = 24;
@@ -482,6 +563,10 @@ namespace Skrib
             if (_settingsComboBoxesStacked != stackComboBoxes)
             {
                 _settingsComboBoxesStacked = stackComboBoxes;
+                // Forces a rewrite when the dropdowns leave the stacked layout
+                // (their Width is NaN while stacked).
+                _settingsThemeComboWidth = null;
+                _settingsComboWidth = null;
                 ApplySettingsComboBoxLayout(ThemeComboBox, stackComboBoxes);
                 ApplySettingsComboBoxLayout(BackdropComboBox, stackComboBoxes);
                 ApplySettingsComboBoxLayout(LangComboBox, stackComboBoxes);
@@ -489,9 +574,17 @@ namespace Skrib
 
             if (!stackComboBoxes)
             {
-                ThemeComboBox.Width = themeWidth;
-                BackdropComboBox.Width = comboWidth;
-                LangComboBox.Width = comboWidth;
+                if (_settingsThemeComboWidth != themeWidth)
+                {
+                    _settingsThemeComboWidth = themeWidth;
+                    ThemeComboBox.Width = themeWidth;
+                }
+                if (_settingsComboWidth != comboWidth)
+                {
+                    _settingsComboWidth = comboWidth;
+                    BackdropComboBox.Width = comboWidth;
+                    LangComboBox.Width = comboWidth;
+                }
             }
         }
 
@@ -543,11 +636,13 @@ namespace Skrib
             try
             {
                 var v = ApplicationData.Current.LocalSettings.Values["AppTheme"] as string;
-                if (Enum.TryParse(v, out ElementTheme t)) return t;
+                // IsDefined rejects numeric strings like "3" that TryParse alone accepts
+                // and that would set an undefined ElementTheme at startup.
+                if (Enum.TryParse(v, out ElementTheme t) && Enum.IsDefined(t)) return t;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error loading theme: {ex.Message}");
+                Debug.Write($"Error loading theme: {ex.Message}");
             }
             return ElementTheme.Default;
         }
@@ -567,7 +662,7 @@ namespace Skrib
                 catch (Exception ex)
                 {
                     // Log error details for debugging: Console.WriteLine(ex.ToString());
-                    System.Diagnostics.Debug.Write($"Error saving theme: {ex.Message}");
+                    Debug.Write($"Error saving theme: {ex.Message}");
                 }
             }
             UpdateTitleBarButtons();
@@ -578,7 +673,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error applying editor bg after theme change: {ex.Message}");
+                Debug.Write($"Error applying editor bg after theme change: {ex.Message}");
             }
         }
 
@@ -592,14 +687,14 @@ namespace Skrib
                 {
                     if (!Enum.TryParse(tag, out ElementTheme theme))
                     {
-                        System.Diagnostics.Debug.Write($"Unknown theme tag: {tag}");
+                        Debug.Write($"Unknown theme tag: {tag}");
                         return;
                     }
                     ApplyTheme(theme);
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.Write($"Error parsing theme: {ex.Message}");
+                    Debug.Write($"Error parsing theme: {ex.Message}");
                 }
             }
         }
@@ -624,7 +719,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error loading backdrop: {ex.Message}");
+                Debug.Write($"Error loading backdrop: {ex.Message}");
             }
             return SettingsDefaults.Backdrop;
         }
@@ -644,7 +739,7 @@ namespace Skrib
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.Write($"Error saving backdrop: {ex.Message}");
+                    Debug.Write($"Error saving backdrop: {ex.Message}");
                 }
             }
         }
@@ -698,7 +793,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error loading language: {ex.Message}");
+                Debug.Write($"Error loading language: {ex.Message}");
             }
             return LanguageHelper.SystemTag;
         }
@@ -715,7 +810,7 @@ namespace Skrib
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.Write($"Error applying language: {ex.Message}");
+                    Debug.Write($"Error applying language: {ex.Message}");
                 }
             }
         }
@@ -729,7 +824,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error resolving system language: {ex.Message}");
+                Debug.Write($"Error resolving system language: {ex.Message}");
             }
             return LanguageHelper.English;
         }
@@ -746,7 +841,7 @@ namespace Skrib
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.Write($"Error saving language: {ex.Message}");
+                    Debug.Write($"Error saving language: {ex.Message}");
                 }
             }
 
@@ -808,6 +903,7 @@ namespace Skrib
             LangHeaderDesc.Text = S("settings.language.desc");
             LangFrComboText.Text = S("settings.lang.fr");
             LangEsComboText.Text = S("settings.lang.es");
+            LangEnComboText.Text = S("settings.lang.en");
             LangSystemComboText.Text = S("settings.lang.system");
 
             SectionEditorTitle.Text = S("settings.section.editor");
@@ -850,7 +946,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error loading word wrap setting: {ex.Message}");
+                Debug.Write($"Error loading word wrap setting: {ex.Message}");
             }
         }
 
@@ -859,7 +955,7 @@ namespace Skrib
             if (!_isInitialized) return;
             Editor.TextWrapping = WordWrapToggle.IsOn ? TextWrapping.Wrap : TextWrapping.NoWrap;
             try { ApplicationData.Current.LocalSettings.Values["WordWrap"] = WordWrapToggle.IsOn; }
-            catch (Exception ex) { System.Diagnostics.Debug.Write($"Error saving word wrap setting: {ex.Message}"); }
+            catch (Exception ex) { Debug.Write($"Error saving word wrap setting: {ex.Message}"); }
             UpdateWordWrapState();
         }
 
@@ -884,7 +980,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error loading editor background setting: {ex.Message}");
+                Debug.Write($"Error loading editor background setting: {ex.Message}");
             }
 
             EditorBgToggle.IsOn = transparent;
@@ -903,7 +999,7 @@ namespace Skrib
         // relying on ClearValue + style resolution.
         private void ApplyEditorBg(bool transparent, bool save = true)
         {
-            var bg = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            var bg = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
             string[] keys =
             {
                 "TextControlBackground",
@@ -941,7 +1037,7 @@ namespace Skrib
             if (save)
             {
                 try { ApplicationData.Current.LocalSettings.Values["EditorTransparent"] = transparent; }
-                catch (Exception ex) { System.Diagnostics.Debug.Write($"Error saving editor background setting: {ex.Message}"); }
+                catch (Exception ex) { Debug.Write($"Error saving editor background setting: {ex.Message}"); }
             }
             // Force ThemeResource re-resolution so the overridden brushes apply immediately.
             // WinUI has no public API to invalidate theme-resource references on an element,
@@ -952,11 +1048,17 @@ namespace Skrib
             UpdateEditorBgState();
         }
 
+        // Opaque editor background colors. MUST stay in sync with the Editor TextBox
+        // ThemeDictionaries in MainWindow.xaml (Light #FFFFFF / Dark #202020): WinUI
+        // XAML cannot reference these constants, so both sides carry the values.
+        private static readonly Windows.UI.Color OpaqueLightColor = Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF);
+        private static readonly Windows.UI.Color OpaqueDarkColor = Windows.UI.Color.FromArgb(0xFF, 0x20, 0x20, 0x20);
+
         // Opaque brush shared by the editor and the Markdown preview host.
         // Must match the XAML ThemeDictionaries in Editor.Resources (#FFFFFF light / #202020 dark).
         private Microsoft.UI.Xaml.Media.Brush GetOpaqueTextBrush()
         {
-            return new Microsoft.UI.Xaml.Media.SolidColorBrush(GetOpaqueEditorColor());
+            return new SolidColorBrush(GetOpaqueEditorColor());
         }
 
         // The opaque editor background color for the current theme.
@@ -978,11 +1080,9 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error resolving editor theme: {ex.Message}");
+                Debug.Write($"Error resolving editor theme: {ex.Message}");
             }
-            return isDark
-                ? Windows.UI.Color.FromArgb(0xFF, 0x20, 0x20, 0x20)
-                : Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF);
+            return isDark ? OpaqueDarkColor : OpaqueLightColor;
         }
 
         // Saves the XAML-defined theme brush once, then overrides it.
@@ -1000,7 +1100,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error overriding editor theme brush: {ex.Message}");
+                Debug.Write($"Error overriding editor theme brush: {ex.Message}");
             }
         }
 
@@ -1018,7 +1118,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error restoring editor theme brush: {ex.Message}");
+                Debug.Write($"Error restoring editor theme brush: {ex.Message}");
             }
         }
 
@@ -1047,8 +1147,30 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error loading editor font size: {ex.Message}");
+                Debug.Write($"Error loading editor font size: {ex.Message}");
             }
+        }
+
+        // Debounced persist of the editor font size. Ctrl+wheel fires many ticks per
+        // gesture; the LocalSettings write is coalesced so each notch does not hit the
+        // settings store. One save lands ~500 ms after the last zoom.
+        private Microsoft.UI.Dispatching.DispatcherQueueTimer? _fontSizeSaveTimer;
+
+        private void QueueFontSizeSave()
+        {
+            if (_fontSizeSaveTimer is null)
+            {
+                _fontSizeSaveTimer = DispatcherQueue.CreateTimer();
+                _fontSizeSaveTimer.Interval = TimeSpan.FromMilliseconds(500);
+                _fontSizeSaveTimer.Tick += (s, e) =>
+                {
+                    _fontSizeSaveTimer.Stop();
+                    try { ApplicationData.Current.LocalSettings.Values["EditorFontSize"] = Editor.FontSize; }
+                    catch (Exception ex) { Debug.Write($"Error saving editor font size: {ex.Message}"); }
+                };
+            }
+            _fontSizeSaveTimer.Stop();
+            _fontSizeSaveTimer.Start();
         }
 
         // Zooms the editor text and persists it. The Markdown preview keeps its fixed
@@ -1056,8 +1178,7 @@ namespace Skrib
         private void ZoomEditorFont(double newSize)
         {
             Editor.FontSize = Math.Clamp(newSize, EditorFontSizeMin, EditorFontSizeMax);
-            try { ApplicationData.Current.LocalSettings.Values["EditorFontSize"] = Editor.FontSize; }
-            catch (Exception ex) { System.Diagnostics.Debug.Write($"Error saving editor font size: {ex.Message}"); }
+            QueueFontSizeSave();
         }
 
         private void ZoomIn_Click(object sender, RoutedEventArgs e)
@@ -1110,43 +1231,33 @@ namespace Skrib
             if (starts.Count == 0)
             {
                 _searchMatchIndex = 0;
-                UpdateSearchCount();
+                UpdateSearchCount(0);
                 return;
             }
             matchIndex = Math.Clamp(matchIndex, 0, starts.Count - 1);
             _searchMatchIndex = matchIndex;
             Editor.Select(starts[matchIndex], SearchTextBox.Text.Length);
-            UpdateSearchCount();
+            UpdateSearchCount(starts.Count);
         }
 
         private void FindNextMatch()
         {
             var starts = CurrentMatches();
             int pos = Editor.SelectionStart + Editor.SelectionLength;
-            int index = -1;
-            for (int i = 0; i < starts.Count; i++)
-            {
-                if (starts[i] >= pos) { index = i; break; }
-            }
-            // Wrap around to the first match when nothing follows the caret.
-            if (index < 0) index = 0;
-            SelectMatchAt(starts, index);
+            // NextIndex wraps to the first match when nothing follows the caret.
+            SelectMatchAt(starts, SearchHelper.NextIndex(starts, pos));
         }
 
         private void FindPreviousMatch()
         {
             var starts = CurrentMatches();
-            int index = -1;
-            for (int i = starts.Count - 1; i >= 0; i--)
-            {
-                if (starts[i] < Editor.SelectionStart) { index = i; break; }
-            }
-            // Wrap around to the last match when nothing precedes the caret.
-            if (index < 0) index = starts.Count - 1;
-            SelectMatchAt(starts, index);
+            // PreviousIndex wraps to the last match when nothing precedes the caret.
+            SelectMatchAt(starts, SearchHelper.PreviousIndex(starts, Editor.SelectionStart));
         }
 
-        private void UpdateSearchCount()
+        // totalOverride lets callers that just scanned the matches (SelectMatchAt) skip
+        // the second full-text scan this refresh would otherwise do.
+        private void UpdateSearchCount(int? totalOverride = null)
         {
             string query = SearchTextBox.Text;
             if (query.Length == 0)
@@ -1154,7 +1265,13 @@ namespace Skrib
                 SearchCountText.Text = string.Empty;
                 return;
             }
-            int total = SearchHelper.CountMatches(Editor.Text, query);
+            int total = totalOverride ?? SearchHelper.CountMatches(Editor.Text, query);
+            // An edit can remove matches after the selected one: clamp so the counter
+            // never shows "3 of 2" until the next navigation recomputes the index.
+            if (_searchMatchIndex >= total)
+            {
+                _searchMatchIndex = Math.Max(0, total - 1);
+            }
             SearchCountText.Text = total == 0
                 ? S("search.noMatches")
                 : string.Format(S("search.matches"), _searchMatchIndex + 1, total);
@@ -1280,7 +1397,7 @@ namespace Skrib
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error reading file path: {ex.Message}");
+                Debug.Write($"Error reading file path: {ex.Message}");
                 StatusText.Text = _currentFile != null ? _currentFile.Name : ready;
             }
             UpdateMarkdownViewState();
@@ -1318,16 +1435,24 @@ namespace Skrib
                 return;
             }
             _uiRefreshQueued = true;
-            _ = DispatcherQueue.TryEnqueue(() =>
+            if (!DispatcherQueue.TryEnqueue(() =>
             {
                 _uiRefreshQueued = false;
                 UpdateTitle();
                 UpdateCaretInfo();
-            });
+            }))
+            {
+                // The dispatcher refused the callback (shutting down): unblock so a
+                // later queue can still refresh the title and caret info.
+                _uiRefreshQueued = false;
+            }
         }
 
         private void Editor_TextChanged(object sender, TextChangedEventArgs e)
         {
+            // Invalidate before the dirty check: SetEditorText suppresses the dirty flag
+            // but still replaces the text, and the line-start cache must follow.
+            _lineStartsValid = false;
             if (_suppressDirty)
             {
                 return;
@@ -1345,28 +1470,46 @@ namespace Skrib
             QueueUiRefresh();
         }
 
+        // Cached line-start offsets for the caret info. SelectionChanged fires on every
+        // selection move, so the line/col lookup is a binary search over starts rebuilt
+        // only when the text actually changed (Editor_TextChanged invalidates).
+        private readonly List<int> _lineStarts = new() { 0 };
+        private bool _lineStartsValid;
+
         // Updates the line/column/character count shown in the status bar.
         private void UpdateCaretInfo()
         {
             string text = Editor?.Text ?? string.Empty;
             int pos = Editor != null ? Editor.SelectionStart : 0;
             pos = Math.Max(0, Math.Min(pos, text.Length));
-            int line = 1;
-            int lastBreak = -1;
-            for (int i = 0; i < pos; i++)
+
+            if (!_lineStartsValid)
             {
-                if (text[i] == '\n')
+                _lineStarts.Clear();
+                _lineStarts.Add(0);
+                for (int i = 0; i < text.Length; i++)
                 {
-                    line++;
-                    lastBreak = i;
+                    if (text[i] == '\n') _lineStarts.Add(i + 1);
                 }
+                _lineStartsValid = true;
             }
-            int col = pos - lastBreak;
+
+            // Binary search: greatest line start <= caret position.
+            int lo = 0;
+            int hi = _lineStarts.Count - 1;
+            while (lo < hi)
+            {
+                int mid = (lo + hi + 1) / 2;
+                if (_lineStarts[mid] <= pos) lo = mid;
+                else hi = mid - 1;
+            }
+            int line = lo + 1;
+            int col = pos - _lineStarts[lo] + 1;
             string countLabel = S("status.chars");
             if (_showMarkdownPreview)
                 CaretInfoText.Text = S("status.preview") + text.Length + " " + countLabel;
             else
-                CaretInfoText.Text = $"Ln {line}, Col {col} | {text.Length} {countLabel}";
+                CaretInfoText.Text = $"{string.Format(S("status.lnCol"), line, col)} | {text.Length} {countLabel}";
         }
 
         private async void NewFile_Click(object sender, RoutedEventArgs e)
@@ -1387,7 +1530,7 @@ namespace Skrib
             {
                 var picker = new FileOpenPicker();
                 try { InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this)); }
-catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file picker: {ex.Message}"); }
+catch (Exception ex) { Debug.Write($"Error initializing file picker: {ex.Message}"); }
                 picker.FileTypeFilter.Clear();
                 picker.FileTypeFilter.Add(".txt");
                 picker.FileTypeFilter.Add(".md");
@@ -1456,16 +1599,27 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
         {
             var picker = new FileSavePicker();
             try { InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this)); }
-catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file picker: {ex.Message}"); }
+catch (Exception ex) { Debug.Write($"Error initializing file picker: {ex.Message}"); }
             picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
-            picker.DefaultFileExtension = ".txt";
+            // Keep the current file's extension as the default choice: a .md document
+            // saved with the plain defaults would silently become name.txt.
+            bool isMd = _currentFile != null && IsMarkdownFile();
+            picker.DefaultFileExtension = isMd ? ".md" : ".txt";
             var untitled = S("doc.untitled");
             var txtLabel = S("saveAs.txtType");
             var mdLabel = S("saveAs.mdType");
             picker.SuggestedFileName = _currentFile != null ? Path.GetFileNameWithoutExtension(_currentFile.Name) : untitled;
             picker.FileTypeChoices.Clear();
-            picker.FileTypeChoices.Add(txtLabel, new System.Collections.Generic.List<string>() { ".txt" });
-            picker.FileTypeChoices.Add(mdLabel, new System.Collections.Generic.List<string>() { ".md" });
+            if (isMd)
+            {
+                picker.FileTypeChoices.Add(mdLabel, new List<string> { ".md" });
+                picker.FileTypeChoices.Add(txtLabel, new List<string> { ".txt" });
+            }
+            else
+            {
+                picker.FileTypeChoices.Add(txtLabel, new List<string> { ".txt" });
+                picker.FileTypeChoices.Add(mdLabel, new List<string> { ".md" });
+            }
             var file = await picker.PickSaveFileAsync();
             if (file == null) return false;
             await FileIO.WriteTextAsync(file, Editor.Text);
@@ -1486,6 +1640,9 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
                 PrimaryButtonText = S("menu.save"),
                 SecondaryButtonText = S("dialog.dontSave"),
                 CloseButtonText = S("dialog.cancel"),
+                // A ContentDialog follows the application theme, not the window's:
+                // pin it to the saved theme or it shows dark in light mode.
+                RequestedTheme = LoadTheme(),
                 XamlRoot = this.Content.XamlRoot
             };
             var result = await dialog.ShowAsync();
@@ -1509,7 +1666,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error opening GitHub page: {ex.Message}");
+                Debug.Write($"Error opening GitHub page: {ex.Message}");
             }
         }
 
@@ -1526,7 +1683,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error opening Store review page: {ex.Message}");
+                Debug.Write($"Error opening Store review page: {ex.Message}");
             }
         }
 
@@ -1539,7 +1696,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error reading package version: {ex.Message}");
+                Debug.Write($"Error reading package version: {ex.Message}");
             }
             try
             {
@@ -1548,7 +1705,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error reading assembly version: {ex.Message}");
+                Debug.Write($"Error reading assembly version: {ex.Message}");
             }
             return "1.0.0.0";
         }
@@ -1582,9 +1739,15 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             }
         }
 
-        // NOTE: Edit menu items have no KeyboardAccelerators on purpose.
-        // The TextBox already handles Ctrl+Z/Y/X/C/V/A natively; adding
-        // accelerators would run the action twice (e.g. pasted text duplicated).
+        // The Edit menu accelerators (MainWindow.xaml) are display-only: they show the
+        // Ctrl+Z/Y/X/C/V/A hints, but the focused TextBox already runs those actions
+        // natively, so suppressing the menu invocation is what avoids running them twice
+        // (e.g. pasted text duplicated). Keyboard + mouse still go through the Click handlers.
+        private void DisplayOnlyAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            args.Handled = true;
+        }
+
         private void Cut_Click(object sender, RoutedEventArgs e)
         {
             Editor.CutSelectionToClipboard();
@@ -1628,7 +1791,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             catch (Exception ex)
             {
                 // Log dialog failure details for debugging: Console.WriteLine(ex.ToString());
-                System.Diagnostics.Debug.Write($"Error showing dialog: {ex.Message}");
+                Debug.Write($"Error showing dialog: {ex.Message}");
             }
         }
 
@@ -1646,7 +1809,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error checking markdown file type: {ex.Message}");
+                Debug.Write($"Error checking markdown file type: {ex.Message}");
                 return false;
             }
         }
@@ -1685,7 +1848,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error toggling markdown preview: {ex.Message}");
+                Debug.Write($"Error toggling markdown preview: {ex.Message}");
             }
             UpdateCaretInfo();
         }
@@ -1703,19 +1866,19 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             try
             {
                 bool light = (this.Content as FrameworkElement)?.ActualTheme != ElementTheme.Dark;
-                var clock = System.Diagnostics.Stopwatch.StartNew();
+                var clock = Stopwatch.StartNew();
                 var blocks = MarkdownPreviewModel.Parse(Editor.Text ?? string.Empty);
                 MarkdownPreviewBuilder.Fill(MarkdownPreview, blocks, light);
                 clock.Stop();
                 if (clock.ElapsedMilliseconds > SlowPreviewRenderMs)
                 {
-                    System.Diagnostics.Debug.Write(
+                    Debug.Write(
                         $"Markdown preview slow: {clock.ElapsedMilliseconds} ms for {Editor.Text?.Length ?? 0} chars");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error rendering Markdown preview: {ex.Message}");
+                Debug.Write($"Error rendering Markdown preview: {ex.Message}");
             }
         }
 
@@ -1729,7 +1892,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error selecting preview text: {ex.Message}");
+                Debug.Write($"Error selecting preview text: {ex.Message}");
             }
         }
 
@@ -1762,7 +1925,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error updating recent files: {ex.Message}");
+                Debug.Write($"Error updating recent files: {ex.Message}");
             }
         }
 
@@ -1772,33 +1935,50 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             {
                 var entries = RecentFilesList.RemoveByToken(LoadRecentFiles(), token);
                 try { StorageApplicationPermissions.FutureAccessList.Remove(token); }
-                catch (Exception ex) { System.Diagnostics.Debug.Write($"Error freeing recent file token: {ex.Message}"); }
+                catch (Exception ex) { Debug.Write($"Error freeing recent file token: {ex.Message}"); }
                 ApplicationData.Current.LocalSettings.Values["RecentFiles"] = RecentFilesList.ToJson(entries);
                 UpdateRecentFilesMenu(entries);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error removing recent file: {ex.Message}");
+                Debug.Write($"Error removing recent file: {ex.Message}");
             }
         }
 
         private void ClearRecentFiles_Click(object sender, RoutedEventArgs e)
         {
-            var entries = LoadRecentFiles();
-            FreeRecentFileTokens(entries);
-            ApplicationData.Current.LocalSettings.Values["RecentFiles"] = RecentFilesList.ToJson(new List<RecentFilesList.Entry>());
-            UpdateRecentFilesMenu(new List<RecentFilesList.Entry>());
+            try
+            {
+                var entries = LoadRecentFiles();
+                FreeRecentFileTokens(entries);
+                ApplicationData.Current.LocalSettings.Values["RecentFiles"] = RecentFilesList.ToJson(new List<RecentFilesList.Entry>());
+                UpdateRecentFilesMenu(new List<RecentFilesList.Entry>());
+            }
+            catch (Exception ex)
+            {
+                Debug.Write($"Error clearing recent files: {ex.Message}");
+            }
         }
 
         private static List<RecentFilesList.Entry> LoadRecentFiles()
         {
             try
             {
-                return RecentFilesList.Parse(ApplicationData.Current.LocalSettings.Values["RecentFiles"] as string);
+                var entries = RecentFilesList.Parse(ApplicationData.Current.LocalSettings.Values["RecentFiles"] as string);
+                // A list saved by an older build can exceed the current cap: trim the
+                // tail and free the evicted FutureAccessList tokens.
+                if (entries.Count > RecentFilesList.MaxEntries)
+                {
+                    int surplus = entries.Count - RecentFilesList.MaxEntries;
+                    var evicted = entries.GetRange(RecentFilesList.MaxEntries, surplus);
+                    entries.RemoveRange(RecentFilesList.MaxEntries, surplus);
+                    FreeRecentFileTokens(evicted);
+                }
+                return entries;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error loading recent files: {ex.Message}");
+                Debug.Write($"Error loading recent files: {ex.Message}");
                 return new List<RecentFilesList.Entry>();
             }
         }
@@ -1808,7 +1988,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             foreach (var entry in entries)
             {
                 try { StorageApplicationPermissions.FutureAccessList.Remove(entry.Token); }
-                catch (Exception ex) { System.Diagnostics.Debug.Write($"Error freeing recent file token: {ex.Message}"); }
+                catch (Exception ex) { Debug.Write($"Error freeing recent file token: {ex.Message}"); }
             }
         }
 
@@ -1849,12 +2029,13 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             catch (Exception ex)
             {
                 // A moved or deleted file invalidates its entry: drop it from the menu.
-                System.Diagnostics.Debug.Write($"Error opening recent file: {ex.Message}");
+                Debug.Write($"Error opening recent file: {ex.Message}");
                 RemoveRecentFile(token);
                 return;
             }
 
-            if (!await AskSaveIfNeededAsync()) return;
+            // The save prompt belongs to OpenFileFromStorageFileAsync: asking here too
+            // would show the dialog twice after "Don't save" (the document stays dirty).
             await OpenFileFromStorageFileAsync(file);
         }
 
@@ -1898,7 +2079,7 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error inspecting drag payload: {ex.Message}");
+                Debug.Write($"Error inspecting drag payload: {ex.Message}");
             }
             e.AcceptedOperation = accepted ? DataPackageOperation.Copy : DataPackageOperation.None;
             if (accepted)
@@ -1925,12 +2106,12 @@ catch (Exception ex) { System.Diagnostics.Debug.Write($"Error initializing file 
                 }
                 if (file == null) return;
 
-                if (!await AskSaveIfNeededAsync()) return;
+                // The save prompt lives inside OpenFileFromStorageFileAsync (single dialog).
                 await OpenFileFromStorageFileAsync(file);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.Write($"Error opening dropped file: {ex.Message}");
+                Debug.Write($"Error opening dropped file: {ex.Message}");
             }
         }
 

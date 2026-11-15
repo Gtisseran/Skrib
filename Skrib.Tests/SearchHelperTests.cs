@@ -59,6 +59,56 @@ public class SearchHelperTests
     }
 
     [Fact]
+    public void NextIndex_ProceedsForwardThenWraps()
+    {
+        var starts = SearchHelper.MatchStarts(Text, "fox"); // 16 and 25.
+
+        Assert.Equal(0, SearchHelper.NextIndex(starts, 0));
+        Assert.Equal(1, SearchHelper.NextIndex(starts, 17));
+        Assert.Equal(1, SearchHelper.NextIndex(starts, 23));
+        // Wrapping: after the last match, back to the first entry.
+        Assert.Equal(0, SearchHelper.NextIndex(starts, 26));
+        Assert.Equal(0, SearchHelper.NextIndex(starts, Text.Length));
+    }
+
+    [Fact]
+    public void NextIndex_HandlesEmptyList()
+    {
+        Assert.Equal(-1, SearchHelper.NextIndex(new List<int>(), 0));
+        Assert.Equal(-1, SearchHelper.NextIndex(SearchHelper.MatchStarts(Text, "cat"), 0));
+    }
+
+    [Fact]
+    public void PreviousIndex_ProceedsBackwardThenWraps()
+    {
+        var starts = SearchHelper.MatchStarts(Text, "fox"); // 16 and 25.
+
+        Assert.Equal(0, SearchHelper.PreviousIndex(starts, 23));
+        Assert.Equal(0, SearchHelper.PreviousIndex(starts, 25));
+        // Wrapping: before the first match, jump to the last entry.
+        Assert.Equal(1, SearchHelper.PreviousIndex(starts, 16));
+        Assert.Equal(1, SearchHelper.PreviousIndex(starts, 0));
+    }
+
+    [Fact]
+    public void PreviousIndex_HandlesEmptyList()
+    {
+        Assert.Equal(-1, SearchHelper.PreviousIndex(new List<int>(), 0));
+        Assert.Equal(-1, SearchHelper.PreviousIndex(SearchHelper.MatchStarts(Text, "cat"), 0));
+    }
+
+    [Fact]
+    public void FindNextAndPrevious_AgreeWithIndexHelpers()
+    {
+        // The position-based helpers delegate to the index ones: both views must agree.
+        var starts = SearchHelper.MatchStarts(Text, "fox");
+        Assert.Equal(starts[SearchHelper.NextIndex(starts, 17)],
+            SearchHelper.FindNext(Text, "fox", 17));
+        Assert.Equal(starts[SearchHelper.PreviousIndex(starts, 16)],
+            SearchHelper.FindPrevious(Text, "fox", 16));
+    }
+
+    [Fact]
     public void ReplaceAll_ReplacesEveryOccurrenceCaseInsensitively()
     {
         Assert.Equal("The quick brown cat. The cat jumps over the lazy dog.",

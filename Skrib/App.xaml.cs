@@ -29,6 +29,9 @@ namespace Skrib
                 if (!mainInstance.IsCurrent)
                 {
                     // Redirect this activation to the running instance, then exit.
+                    // Kill is deliberate: Application.Current.Exit() is unreliable before
+                    // any window exists in this process, and the activation was already
+                    // handed to the main instance.
                     await mainInstance.RedirectActivationToAsync(activatedArgs);
                     System.Diagnostics.Process.GetCurrentProcess().Kill();
                     return;

@@ -57,6 +57,10 @@ namespace Skrib
             .UseAdvancedExtensions()   // tables, task lists, strikethrough, autolinks…
             .Build();
 
+        // Nesting limit for quotes, lists and inline containers: a document crafted with
+        // thousands of nested ">" markers must not overflow the stack during parsing.
+        private const int MaxNestingDepth = 64;
+
         public static IReadOnlyList<object> Parse(string? markdown)
         {
             var blocks = new List<object>();
@@ -65,12 +69,17 @@ namespace Skrib
                 return blocks;
             }
             var document = Markdig.Markdown.Parse(markdown, Pipeline);
-            CollectBlocks(document, blocks, listIndent: 0);
+            CollectBlocks(document, blocks, listIndent: 0, depth: 0);
             return blocks;
         }
 
-        private static void CollectBlocks(Markdig.Syntax.ContainerBlock container, List<object> target, int listIndent)
+        private static void CollectBlocks(Markdig.Syntax.ContainerBlock container, List<object> target, int listIndent, int depth)
         {
+            if (depth > MaxNestingDepth)
+            {
+                return;
+            }
+
             foreach (var block in container)
             {
                 switch (block)
@@ -95,7 +104,7 @@ namespace Skrib
 
                     case Markdig.Syntax.QuoteBlock quote:
                         var quoted = new List<object>();
-                        CollectBlocks(quote, quoted, listIndent);
+                        CollectBlocks(quote, quoted, listIndent, depth + 1);
                         target.Add(new MarkdownBlock { Kind = MarkdownBlockKind.Quote, Blocks = quoted });
                         break;
 
@@ -106,7 +115,7 @@ namespace Skrib
                             var itemBlocks = new List<object>();
                             if (item is Markdig.Syntax.ListItemBlock listItem)
                             {
-                                CollectBlocks(listItem, itemBlocks, listIndent + 1);
+                                CollectBlocks(listItem, itemBlocks, listIndent + 1, depth + 1);
                             }
                             items.Add(new MarkdownListItem(itemBlocks));
                         }
@@ -193,14 +202,18 @@ namespace Skrib
             }
             foreach (var inline in container)
             {
-                CollectInline(inline, runs, bold: false, italic: false, strike: false, code: false, link: null);
+                CollectInline(inline, runs, bold: false, italic: false, strike: false, code: false, link: null, depth: 0);
             }
             return runs;
         }
 
         private static void CollectInline(Markdig.Syntax.Inlines.Inline inline, List<MarkdownRun> runs,
-            bool bold, bool italic, bool strike, bool code, string? link)
+            bool bold, bool italic, bool strike, bool code, string? link, int depth)
         {
+            if (depth > MaxNestingDepth)
+            {
+                return;
+            }
             switch (inline)
             {
                 case Markdig.Syntax.Inlines.LiteralInline literal:
@@ -217,7 +230,7 @@ namespace Skrib
                     bool emItalic = italic || (!emStrike && emphasis.DelimiterCount == 1);
                     foreach (var child in emphasis)
                     {
-                        CollectInline(child, runs, emBold, emItalic, emStrike, code, link);
+                        CollectInline(child, runs, emBold, emItalic, emStrike, code, link, depth + 1);
                     }
                     break;
 
@@ -229,7 +242,7 @@ namespace Skrib
                     foreach (var child in imageLink)
                     {
                         var childRuns = new List<MarkdownRun>();
-                        CollectInline(child, childRuns, bold: false, italic: false, strike: false, code: false, link: null);
+                        CollectInline(child, childRuns, bold: false, italic: false, strike: false, code: false, link: null, depth + 1);
                         foreach (var childRun in childRuns)
                         {
                             altText.Append(childRun.Text);
@@ -243,7 +256,7 @@ namespace Skrib
                     string url = textLink.Url ?? string.Empty;
                     foreach (var child in textLink)
                     {
-                        CollectInline(child, runs, bold, italic, strike, code, url);
+                        CollectInline(child, runs, bold, italic, strike, code, url, depth + 1);
                     }
                     break;
 
@@ -268,7 +281,7 @@ namespace Skrib
                     {
                         foreach (var child in nested)
                         {
-                            CollectInline(child, runs, bold, italic, strike, code, link);
+                            CollectInline(child, runs, bold, italic, strike, code, link, depth + 1);
                         }
                     }
                     break;

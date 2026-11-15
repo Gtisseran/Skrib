@@ -15,7 +15,7 @@ public static class RecentFilesList
     public sealed record Entry(string Token, string Path);
 
     /// <summary>Maximum number of entries kept in the menu.</summary>
-    public const int MaxEntries = 10;
+    public const int MaxEntries = 5;
 
     /// <summary>
     /// Parses the persisted JSON list; corrupt or missing input yields an empty list
@@ -36,8 +36,9 @@ public static class RecentFilesList
 
     /// <summary>
     /// Moves (or adds) the entry to the top, deduplicated by path, capped at
-    /// <see cref="MaxEntries"/>. Entries evicted from the tail are returned so the
-    /// caller can free their FutureAccessList tokens.
+    /// <see cref="MaxEntries"/>. Entries evicted from the tail, and the replaced
+    /// duplicate's stale token, are returned so the caller can free their
+    /// FutureAccessList tokens.
     /// </summary>
     public static List<Entry> Push(List<Entry> entries, string token, string path, out List<Entry> evicted)
     {
@@ -47,7 +48,13 @@ public static class RecentFilesList
         var result = new List<Entry>();
         foreach (var entry in entries)
         {
-            if (entry.Path != path)
+            if (entry.Path == path)
+            {
+                // The replaced duplicate would otherwise leak its FutureAccessList
+                // token: it is no longer reachable from the list, so free it too.
+                if (entry.Token != token) evicted.Add(entry);
+            }
+            else
             {
                 result.Add(entry);
             }

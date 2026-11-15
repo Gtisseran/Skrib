@@ -32,13 +32,31 @@ public class RecentFilesListTests
             new("t2", @"C:\b\other.md"),
         };
 
-        // Same file, new token (each pick grants a fresh token): the old entry must go.
+        // Same file, new token (each pick grants a fresh token): the old entry must go,
+        // and its stale token is returned so the caller can free it in the FutureAccessList.
         var result = RecentFilesList.Push(entries, "t3", @"C:\a\doc.md", out var evicted);
 
         Assert.Equal(2, result.Count);
         Assert.Equal(@"C:\a\doc.md", result[0].Path);
         Assert.Equal("t3", result[0].Token);
         Assert.Equal(@"C:\b\other.md", result[1].Path);
+        Assert.Single(evicted);
+        Assert.Equal("t1", evicted[0].Token);
+    }
+
+    [Fact]
+    public void Push_DuplicateWithSameToken_DoesNotEvictIt()
+    {
+        var entries = new List<RecentFilesList.Entry>
+        {
+            new("t1", @"C:\a\doc.md"),
+        };
+
+        // The FutureAccessList can hand back the token already held: nothing to free.
+        var result = RecentFilesList.Push(entries, "t1", @"C:\a\doc.md", out var evicted);
+
+        Assert.Single(result);
+        Assert.Equal("t1", result[0].Token);
         Assert.Empty(evicted);
     }
 

@@ -33,17 +33,42 @@ public static class SearchHelper
     }
 
     /// <summary>
+    /// Index within a precomputed <paramref name="starts"/> list of the first match at or
+    /// after <paramref name="pos"/> (wrapping to 0), or -1 when the list is empty. Works
+    /// on the caller's list so navigation never rescans the whole document.
+    /// </summary>
+    public static int NextIndex(List<int> starts, int pos)
+    {
+        for (int i = 0; i < starts.Count; i++)
+        {
+            if (starts[i] >= pos) return i;
+        }
+        return starts.Count > 0 ? 0 : -1;
+    }
+
+    /// <summary>
+    /// Index within a precomputed <paramref name="starts"/> list of the last match
+    /// strictly before <paramref name="pos"/> (wrapping to the last entry), or -1 when
+    /// the list is empty.
+    /// </summary>
+    public static int PreviousIndex(List<int> starts, int pos)
+    {
+        for (int i = starts.Count - 1; i >= 0; i--)
+        {
+            if (starts[i] < pos) return i;
+        }
+        return starts.Count > 0 ? starts.Count - 1 : -1;
+    }
+
+    /// <summary>
     /// Start of the first match at or after <paramref name="startIndex"/> (wrapping to the
     /// beginning of the text), or -1 when the query never matches.
     /// </summary>
     public static int FindNext(string? text, string? query, int startIndex)
     {
         var starts = MatchStarts(text, query);
-        foreach (int start in starts)
-        {
-            if (start >= startIndex) return start;
-        }
-        return starts.Count > 0 ? starts[0] : -1;
+        int index = NextIndex(starts, startIndex);
+        return index < 0 ? -1 : starts[index];
     }
 
     /// <summary>
@@ -53,11 +78,8 @@ public static class SearchHelper
     public static int FindPrevious(string? text, string? query, int startIndex)
     {
         var starts = MatchStarts(text, query);
-        for (int i = starts.Count - 1; i >= 0; i--)
-        {
-            if (starts[i] < startIndex) return starts[i];
-        }
-        return starts.Count > 0 ? starts[starts.Count - 1] : -1;
+        int index = PreviousIndex(starts, startIndex);
+        return index < 0 ? -1 : starts[index];
     }
 
     /// <summary>
