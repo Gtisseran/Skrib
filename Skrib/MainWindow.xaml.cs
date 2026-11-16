@@ -89,10 +89,15 @@ namespace Skrib
         // Pins the visible wrapping content (editor or Markdown preview) to its
         // current width while a resize drag lasts (see ResizeHelper.Attach). A
         // wrapping re-layout for every intermediate size is the dominant per-frame
-        // cost during a drag; pinning stops it, the band color fills the strip
-        // beyond the pinned width in the editor tone, and the settle pass at drag
-        // end re-wraps the document exactly once.
+        // cost during a drag; pinning stops it in both directions, and the settle
+        // pass at drag end re-wraps the document exactly once. Both bounds are
+        // pinned, plus the alignment: Width alone would center the element in its
+        // slot (explicit size + Stretch centers), and MaxWidth alone would let the
+        // window shrink past the pinned width and re-wrap anyway. While pinned the
+        // editor stays flush with the left edge — the band color extends it when
+        // the window grows, and the window edge clips it when it shrinks.
         private FrameworkElement? _resizeFrozenWrap;
+        private HorizontalAlignment _resizeFrozenAlignment;
 
         private void FreezeResizeWrapping()
         {
@@ -101,13 +106,18 @@ namespace Skrib
             double width = target.ActualWidth;
             if (double.IsNaN(width) || width <= 0) return;
             _resizeFrozenWrap = target;
-            target.Width = width;
+            _resizeFrozenAlignment = target.HorizontalAlignment;
+            target.HorizontalAlignment = HorizontalAlignment.Left;
+            target.MinWidth = width;
+            target.MaxWidth = width;
         }
 
         private void UnfreezeResizeWrapping()
         {
             if (_resizeFrozenWrap is null) return;
-            _resizeFrozenWrap.Width = double.NaN;
+            _resizeFrozenWrap.MinWidth = 0;
+            _resizeFrozenWrap.MaxWidth = double.PositiveInfinity;
+            _resizeFrozenWrap.HorizontalAlignment = _resizeFrozenAlignment;
             _resizeFrozenWrap = null;
         }
 
