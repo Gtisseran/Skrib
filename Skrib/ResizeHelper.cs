@@ -19,10 +19,10 @@ namespace Skrib;
 ///    passes the editor background color, see SetBandColor) instead of the default
 ///    GDI erase, which paints the window-class black brush right over that sheet.
 /// 3. While the drag lasts (WM_ENTERSIZEMOVE .. WM_EXITSIZEMOVE) WS_EX_COMPOSITED
-///    routes the repaints through DWM double buffering, and every WM_SIZE gets one
-///    coalesced layout pass so edge-anchored content (title bar buttons, bottom
-///    bar) tracks the window live instead of stuttering between frames; one final
-///    pass settles the content exactly on the final size.
+///    routes the repaints through DWM double buffering, and WM_SIZE gets one
+///    coalesced layout pass per frame budget so edge-anchored content (title bar
+///    buttons, bottom bar) tracks the window live instead of stuttering between
+///    frames; one final pass settles the content exactly on the final size.
 /// </summary>
 public static class ResizeHelper
 {
@@ -113,6 +113,15 @@ public static class ResizeHelper
     private static Action? _layoutTick;
     private static bool _dragging;
     private static bool _layoutTickQueued;
+    // Frame budget between executed layout passes. WM_SIZE tracks the input rate,
+    // so a high report-rate mouse (or a 144 Hz display) would run a full
+    // measure/arrange pass — which re-wraps the whole document — several times
+    // per displayed frame. Capping the ticks at one per ~15 ms keeps live
+    // tracking at frame pace with a bounded cost; the skipped sizes are never
+    // shown anyway, and the band color masks the one-frame trail they leave.
+    private const int MinLayoutTickIntervalMs = 15;
+    // Seeded so the very first WM_SIZE of a drag passes the budget gate.
+    private static long _lastLayoutTickAt = -MinLayoutTickIntervalMs;
     // Trailing-strip color, cached as a GDI brush (COLORREF 0x00BBGGRR + HBRUSH).
     private static uint _bandColorRef;
     private static nint _bandBrush;
@@ -194,8 +203,11 @@ public static class ResizeHelper
                 // While the drag lasts, give the XAML island one layout pass per
                 // dispatcher tick: edge-anchored content (top-right buttons, bottom
                 // bar) then tracks the window every frame instead of stuttering
-                // between frames or snapping when the drag ends.
-                if (_dragging && wParam != SIZE_MINIMIZED && !_layoutTickQueued)
+                // between frames or snapping when the drag ends. Ticks arriving
+                // sooner than one frame after the previous pass are dropped: at
+                // their rate the extra passes only re-layout sizes no frame shows.
+                if (_dragging && wParam != SIZE_MINIMIZED && !_layoutTickQueued
+                    && Environment.TickCount64 - _lastLayoutTickAt >= MinLayoutTickIntervalMs)
                 {
                     _layoutTickQueued = true;
                     QueueLayoutTick();
@@ -238,6 +250,12 @@ public static class ResizeHelper
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.Write($"Error during resize layout tick: {ex.Message}");
+            }
+            finally
+            {
+                // The budget measures executed passes, not queued ones, so a slow
+                // pass delays the next one by its own duration as well.
+                _lastLayoutTickAt = Environment.TickCount64;
             }
         });
     }
