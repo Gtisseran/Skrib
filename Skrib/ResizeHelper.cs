@@ -59,10 +59,12 @@ public static class ResizeHelper
     private static extern int DwmSetWindowAttribute(nint hwnd, uint attribute, ref int value, int size);
 
     // GetWindowLongPtrW does not exist on x86, hence the per-word-size dispatch.
-    [DllImport("user32.dll", EntryPoint = "GetWindowLongW")]
+    // SetLastError lets ToggleComposited tell a failed read (0) from a window that
+    // genuinely has no extended styles.
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongW", SetLastError = true)]
     private static extern int GetWindowLong32(nint hwnd, int index);
 
-    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
     private static extern nint GetWindowLongPtr64(nint hwnd, int index);
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLongW")]
@@ -292,6 +294,9 @@ public static class ResizeHelper
     private static void ToggleComposited(nint hwnd, bool on)
     {
         long exStyle = (long)GetWindowLong(hwnd, GWL_EXSTYLE);
+        // A failed read reports 0: writing back 0 (or only the composited bit) would
+        // wipe the real extended styles, so bail out when the read visibly failed.
+        if (exStyle == 0 && Marshal.GetLastWin32Error() != 0) return;
         long updated = on ? exStyle | WS_EX_COMPOSITED : exStyle & ~WS_EX_COMPOSITED;
         _ = SetWindowLong(hwnd, GWL_EXSTYLE, (nint)updated);
     }

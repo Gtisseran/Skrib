@@ -169,14 +169,25 @@ namespace Skrib
         private static IReadOnlyList<MarkdownRun> CollectCellRuns(Markdig.Extensions.Tables.TableCell cell)
         {
             var runs = new List<MarkdownRun>();
-            foreach (var inner in cell)
+            CollectCellBlocks(cell, runs);
+            return runs;
+        }
+
+        // Table cells normally hold a single paragraph, but nothing forbids other
+        // containers: recurse so their runs are rendered instead of dropped.
+        private static void CollectCellBlocks(Markdig.Syntax.ContainerBlock container, List<MarkdownRun> runs)
+        {
+            foreach (var inner in container)
             {
                 if (inner is Markdig.Syntax.ParagraphBlock paragraph)
                 {
                     runs.AddRange(CollectRuns(paragraph.Inline));
                 }
+                else if (inner is Markdig.Syntax.ContainerBlock nested)
+                {
+                    CollectCellBlocks(nested, runs);
+                }
             }
-            return runs;
         }
 
         private static string LinesToText(Markdig.Helpers.StringLineGroup lines)

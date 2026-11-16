@@ -32,6 +32,7 @@
     <Compile Include="..\Skrib\UiStrings.cs" Link="UiStrings.cs" />
     <Compile Include="..\Skrib\RecentFilesList.cs" Link="RecentFilesList.cs" />
     <Compile Include="..\Skrib\SearchHelper.cs" Link="SearchHelper.cs" />
+    <Compile Include="..\Skrib\TextFileCodec.cs" Link="TextFileCodec.cs" />
   </ItemGroup>
 
   <!-- Lets the translation coverage tests locate the sources they inspect. -->

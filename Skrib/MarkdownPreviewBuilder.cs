@@ -303,6 +303,8 @@ namespace Skrib
 
         // Palette brushes are shared across all runs: the preview only ever uses a handful
         // of fixed colors, so caching avoids allocating a SolidColorBrush per run rendered.
+        // UI-thread only: Fill is only ever called from the UI thread, so the dictionary
+        // needs no lock.
         private static readonly Dictionary<Color, SolidColorBrush> BrushCache = new();
 
         private static Brush Brush(bool light, byte alphaLight, byte rLight, byte gLight, byte bLight,

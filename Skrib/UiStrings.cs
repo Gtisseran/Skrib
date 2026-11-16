@@ -86,6 +86,7 @@ public static class UiStrings
         new("dialog.dontSave", "Don't save", "Ne pas enregistrer", "No guardar"),
         new("dialog.cancel", "Cancel", "Annuler", "Cancelar"),
         new("error.readFile", "Unable to read file", "Impossible de lire le fichier", "No se puede leer el archivo"),
+        new("error.fileTooLarge", "This file is too large to open ({0} MB max).", "Ce fichier est trop volumineux pour être ouvert ({0} Mo max).", "Este archivo es demasiado grande para abrirse ({0} MB máx.)."),
         new("error.open", "Open error", "Erreur lors de l'ouverture", "Error al abrir"),
         new("error.save", "Save error", "Erreur lors de l'enregistrement", "Error al guardar"),
         new("saveAs.txtType", "Text Document", "Document texte (.txt)", "Documento de texto (.txt)"),

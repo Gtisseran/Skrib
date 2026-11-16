@@ -12,6 +12,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using Windows.Storage.Streams;
 using Windows.Storage.AccessCache;
 using WinRT.Interop;
 using Windows.System;
@@ -50,6 +51,13 @@ namespace Skrib
         private bool _smoothHorizontalAnimating;
         private bool _closeConfirmed;
         private bool _closeDialogOpen;
+        // Encoding of the currently open file, detected at open time and reused at
+        // save time so an ANSI or UTF-16 file is not silently rewritten as UTF-8.
+        private TextFileEncoding _currentFileEncoding = TextFileEncoding.Utf8NoBom;
+        // Rejects files too large to edit smoothly in a plain TextBox (the re-wrap
+        // and the caret scan are O(document)); 10 MB covers any realistic text note.
+        private const long MaxOpenFileBytes = 10L * 1024 * 1024;
+        private const int MaxOpenFileMb = 10;
 
         public MainWindow()
         {
@@ -1270,9 +1278,16 @@ namespace Skrib
         // 0-based position of the current match among all matches (for the "n of m" counter).
         private int _searchMatchIndex;
 
+        // Cached match positions, invalidated whenever the query or the document
+        // changes: navigation and the counter re-use the list instead of rescanning
+        // the whole document (two full scans per keystroke otherwise).
+        private List<int>? _cachedMatches;
+
         // Shows the bar; withReplace also reveals the replace row.
         private void ShowSearch(bool withReplace)
         {
+            // The document may have changed while the bar was hidden.
+            _cachedMatches = null;
             SearchBar.Visibility = Visibility.Visible;
             ReplaceRow.Visibility = withReplace ? Visibility.Visible : Visibility.Collapsed;
             SearchTextBox.Focus(FocusState.Programmatic);
@@ -1288,7 +1303,11 @@ namespace Skrib
 
         private List<int> CurrentMatches()
         {
-            return SearchHelper.MatchStarts(Editor.Text, SearchTextBox.Text);
+            if (_cachedMatches is null)
+            {
+                _cachedMatches = SearchHelper.MatchStarts(Editor.Text, SearchTextBox.Text);
+            }
+            return _cachedMatches;
         }
 
         // Selects the match at matchIndex and refreshes the counter. With an empty
@@ -1332,7 +1351,7 @@ namespace Skrib
                 SearchCountText.Text = string.Empty;
                 return;
             }
-            int total = totalOverride ?? SearchHelper.CountMatches(Editor.Text, query);
+            int total = totalOverride ?? CurrentMatches().Count;
             // An edit can remove matches after the selected one: clamp so the counter
             // never shows "3 of 2" until the next navigation recomputes the index.
             if (_searchMatchIndex >= total)
@@ -1360,7 +1379,8 @@ namespace Skrib
 
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // A new query restarts the search from the first match.
+            // A new query restarts the search from the first match (one fresh scan).
+            _cachedMatches = null;
             SelectMatchAt(CurrentMatches(), 0);
         }
 
@@ -1528,6 +1548,7 @@ namespace Skrib
             QueueUiRefresh();
             if (SearchBar.Visibility == Visibility.Visible)
             {
+                _cachedMatches = null;
                 UpdateSearchCount();
             }
         }
@@ -1581,18 +1602,26 @@ namespace Skrib
 
         private async void NewFile_Click(object sender, RoutedEventArgs e)
         {
-            if (!await AskSaveIfNeededAsync()) return;
-            SetEditorText(string.Empty);
-            _currentFile = null;
-            _isDirty = false;
-            UpdateTitle();
-            UpdateCaretInfo();
+            try
+            {
+                if (!await AskSaveIfNeededAsync()) return;
+                SetEditorText(string.Empty);
+                _currentFile = null;
+                _isDirty = false;
+                // A fresh document saves in the default encoding again.
+                _currentFileEncoding = TextFileEncoding.Utf8NoBom;
+                UpdateTitle();
+                UpdateCaretInfo();
+            }
+            catch (Exception ex)
+            {
+                // async void: an unobserved failure would crash the app.
+                Debug.Write($"Error creating a new document: {ex.Message}");
+            }
         }
 
         private async void OpenFile_Click(object sender, RoutedEventArgs e)
         {
-            if (!await AskSaveIfNeededAsync()) return;
-
             try
             {
                 var picker = new FileOpenPicker();
@@ -1603,20 +1632,10 @@ catch (Exception ex) { Debug.Write($"Error initializing file picker: {ex.Message
                 picker.FileTypeFilter.Add(".md");
 
                 var file = await picker.PickSingleFileAsync();
-                if (file != null)
-                {
-                    try
-                    {
-                        var text = await FileIO.ReadTextAsync(file);
-                        _currentFile = file;
-                        AddToRecentFiles(file);
-                        SetEditorText(text);
-                    }
-                    catch (Exception ex)
-                    {
-                        await ShowErrorAsync(S("error.readFile"), ex.Message);
-                    }
-                }
+                // The save prompt and the size guard live in the shared open path:
+                // prompting here too would run twice after "Don't save" (the
+                // document stays dirty).
+                if (file != null) await OpenFileFromStorageFileAsync(file);
             }
             catch (Exception ex)
             {
@@ -1645,7 +1664,7 @@ catch (Exception ex) { Debug.Write($"Error initializing file picker: {ex.Message
             }
             try
             {
-                await FileIO.WriteTextAsync(_currentFile, Editor.Text);
+                await FileIO.WriteBytesAsync(_currentFile, TextFileCodec.Encode(Editor.Text, _currentFileEncoding));
             }
             catch (FileNotFoundException)
             {
@@ -1689,7 +1708,7 @@ catch (Exception ex) { Debug.Write($"Error initializing file picker: {ex.Message
             }
             var file = await picker.PickSaveFileAsync();
             if (file == null) return false;
-            await FileIO.WriteTextAsync(file, Editor.Text);
+            await FileIO.WriteBytesAsync(file, TextFileCodec.Encode(Editor.Text, _currentFileEncoding));
             _currentFile = file;
             AddToRecentFiles(file);
             _isDirty = false;
@@ -2087,39 +2106,66 @@ catch (Exception ex) { Debug.Write($"Error initializing file picker: {ex.Message
 
         private async void RecentFile_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not MenuFlyoutItem item || item.Tag is not string token) return;
-            StorageFile? file;
             try
             {
-                file = await StorageApplicationPermissions.FutureAccessList.GetFileAsync(token);
+                if (sender is not MenuFlyoutItem item || item.Tag is not string token) return;
+                StorageFile? file;
+                try
+                {
+                    file = await StorageApplicationPermissions.FutureAccessList.GetFileAsync(token);
+                }
+                catch (Exception ex)
+                {
+                    // A moved or deleted file invalidates its entry: drop it from the menu.
+                    Debug.Write($"Error opening recent file: {ex.Message}");
+                    RemoveRecentFile(token);
+                    return;
+                }
+
+                // The save prompt belongs to OpenFileFromStorageFileAsync: asking here
+                // too would show the dialog twice after "Don't save" (the document
+                // stays dirty).
+                await OpenFileFromStorageFileAsync(file);
             }
             catch (Exception ex)
             {
-                // A moved or deleted file invalidates its entry: drop it from the menu.
+                // async void: an unobserved failure (e.g. a busy dialog) would crash the app.
                 Debug.Write($"Error opening recent file: {ex.Message}");
-                RemoveRecentFile(token);
-                return;
             }
-
-            // The save prompt belongs to OpenFileFromStorageFileAsync: asking here too
-            // would show the dialog twice after "Don't save" (the document stays dirty).
-            await OpenFileFromStorageFileAsync(file);
         }
 
         #endregion
 
         #region File Activation
 
+        // Single open path shared by the picker, the recent files, drag & drop and the
+        // file activation: size guard, save prompt, encoding-aware read, recent list.
         public async Task OpenFileFromStorageFileAsync(StorageFile file)
         {
             try
             {
-                // Prompt to save current work before replacing it with the activated file.
+                // Reject the sizes a plain TextBox cannot handle smoothly before
+                // prompting: the re-wrap and the caret scan are O(document).
+                var properties = await file.GetBasicPropertiesAsync();
+                if (properties.Size > (ulong)MaxOpenFileBytes)
+                {
+                    await ShowErrorAsync(S("error.readFile"), string.Format(S("error.fileTooLarge"), MaxOpenFileMb));
+                    return;
+                }
+
+                // Prompt to save current work before replacing it with the opened file.
                 if (!await AskSaveIfNeededAsync())
                 {
                     return;
                 }
-                var text = await FileIO.ReadTextAsync(file);
+                var buffer = await FileIO.ReadBufferAsync(file);
+                var bytes = new byte[(int)buffer.Length];
+                if (bytes.Length > 0)
+                {
+                    DataReader.FromBuffer(buffer).ReadBytes(bytes);
+                }
+                var (text, encoding) = TextFileCodec.Decode(bytes);
+                _currentFileEncoding = encoding;
                 _currentFile = file;
                 AddToRecentFiles(file);
                 SetEditorText(text);
