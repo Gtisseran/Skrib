@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Microsoft.UI.Dispatching;
 using Windows.UI;
 
 namespace Skrib;
@@ -19,10 +18,11 @@ namespace Skrib;
 ///    passes the editor background color, see SetBandColor) instead of the default
 ///    GDI erase, which paints the window-class black brush right over that sheet.
 /// 3. While the drag lasts (WM_ENTERSIZEMOVE .. WM_EXITSIZEMOVE) WS_EX_COMPOSITED
-///    routes the repaints through DWM double buffering, and WM_SIZE gets one
-///    coalesced layout pass per frame budget so edge-anchored content (title bar
-///    buttons, bottom bar) tracks the window live instead of stuttering between
-///    frames; one final pass settles the content exactly on the final size.
+///    routes the repaints through DWM double buffering, and each WM_SIZE gets one
+///    budgeted layout pass, run synchronously after the original proc has resized
+///    the XAML island so edge-anchored content (title bar buttons, bottom bar)
+///    tracks the window live instead of trailing by frames; one final pass
+///    settles the content exactly on the final size.
 /// </summary>
 public static class ResizeHelper
 {
@@ -107,12 +107,10 @@ public static class ResizeHelper
     // Rooted for the life of the process: the OS keeps a raw pointer to this delegate.
     private static WndProcDelegate? _wndProc;
     private static readonly Dictionary<nint, nint> OriginalWndProcs = new();
-    private static DispatcherQueue? _dispatcherQueue;
-    // Coalesced layout pass for the XAML island: queued at most once per dispatcher
-    // tick during a drag (WM_SIZE), plus once when the drag ends (WM_EXITSIZEMOVE).
+    // Layout pass for the XAML island: one budgeted pass per WM_SIZE during a
+    // drag, plus one final pass when the drag ends (WM_EXITSIZEMOVE).
     private static Action? _layoutTick;
     private static bool _dragging;
-    private static bool _layoutTickQueued;
     // Frame budget between executed layout passes. WM_SIZE tracks the input rate,
     // so a high report-rate mouse (or a 144 Hz display) would run a full
     // measure/arrange pass — which re-wraps the whole document — several times
@@ -180,7 +178,6 @@ public static class ResizeHelper
         if (previous == 0) return;
 
         OriginalWndProcs[hwnd] = previous;
-        _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
     }
 
     private static nint WndProc(nint hwnd, uint msg, nint wParam, nint lParam)
@@ -199,21 +196,6 @@ public static class ResizeHelper
                 FillBand(hwnd, wParam);
                 return (nint)1;
 
-            case WM_SIZE:
-                // While the drag lasts, give the XAML island one layout pass per
-                // dispatcher tick: edge-anchored content (top-right buttons, bottom
-                // bar) then tracks the window every frame instead of stuttering
-                // between frames or snapping when the drag ends. Ticks arriving
-                // sooner than one frame after the previous pass are dropped: at
-                // their rate the extra passes only re-layout sizes no frame shows.
-                if (_dragging && wParam != SIZE_MINIMIZED && !_layoutTickQueued
-                    && Environment.TickCount64 - _lastLayoutTickAt >= MinLayoutTickIntervalMs)
-                {
-                    _layoutTickQueued = true;
-                    QueueLayoutTick();
-                }
-                break;
-
             case WM_ENTERSIZEMOVE:
                 _dragging = true;
                 ToggleComposited(hwnd, on: true);
@@ -222,42 +204,63 @@ public static class ResizeHelper
             case WM_EXITSIZEMOVE:
                 _dragging = false;
                 ToggleComposited(hwnd, on: false);
-                // Fires after both moves and resizes; one final pass settles the
-                // content exactly on the final size (a no-op when the per-frame
-                // ticks already caught up).
-                if (!_layoutTickQueued)
-                {
-                    _layoutTickQueued = true;
-                    QueueLayoutTick();
-                }
                 break;
         }
 
-        return CallWindowProc(original, hwnd, msg, wParam, lParam);
+        nint result = CallWindowProc(original, hwnd, msg, wParam, lParam);
+
+        // Layout passes run AFTER the original proc: WinUI resizes the XAML island
+        // inside it, so only from here do the layout constraints reflect this
+        // message's size. Running the pass synchronously arranges the content for
+        // the current size before DWM composes the next frame; routing it through
+        // the dispatcher queue instead let the island render several sizes ahead,
+        // leaving edge-anchored content (title bar buttons, bottom bar) trailing.
+        switch (msg)
+        {
+            case WM_SIZE:
+                // While the drag lasts, one budgeted pass per WM_SIZE keeps the
+                // edge-anchored content tracking the window live instead of
+                // stuttering between frames or snapping when the drag ends. Ticks
+                // arriving sooner than one frame after the previous pass are
+                // dropped: at their rate the extra passes only re-layout sizes no
+                // frame shows.
+                if (_dragging && wParam != SIZE_MINIMIZED
+                    && Environment.TickCount64 - _lastLayoutTickAt >= MinLayoutTickIntervalMs)
+                {
+                    RunLayoutTick();
+                }
+                break;
+
+            case WM_EXITSIZEMOVE:
+                // Fires after both moves and resizes; one final unbudgeted pass
+                // settles the content exactly on the final size (a no-op when the
+                // per-frame ticks already caught up).
+                RunLayoutTick();
+                break;
+        }
+
+        return result;
     }
 
-    // Runs the layout tick on the UI thread and releases the queue slot. The tick
-    // runs outside WndProc, so a failure cannot reenter the message handler.
-    private static void QueueLayoutTick()
+    // Runs the layout tick synchronously inside the message dispatch. XAML layout
+    // does not pump messages, and a failure here must never break the resize, so
+    // everything is caught and logged.
+    private static void RunLayoutTick()
     {
-        _dispatcherQueue?.TryEnqueue(() =>
+        try
         {
-            _layoutTickQueued = false;
-            try
-            {
-                _layoutTick?.Invoke();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.Write($"Error during resize layout tick: {ex.Message}");
-            }
-            finally
-            {
-                // The budget measures executed passes, not queued ones, so a slow
-                // pass delays the next one by its own duration as well.
-                _lastLayoutTickAt = Environment.TickCount64;
-            }
-        });
+            _layoutTick?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.Write($"Error during resize layout tick: {ex.Message}");
+        }
+        finally
+        {
+            // The budget measures executed passes, so a slow pass delays the next
+            // one by its own duration as well.
+            _lastLayoutTickAt = Environment.TickCount64;
+        }
     }
 
     private static void ToggleComposited(nint hwnd, bool on)
