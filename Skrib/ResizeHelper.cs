@@ -22,8 +22,8 @@ namespace Skrib;
 ///    budgeted layout pass, run synchronously after the original proc has resized
 ///    the XAML island so edge-anchored content (title bar buttons, bottom bar)
 ///    tracks the window live instead of trailing by frames. The drag-start and
-///    drag-end hooks let the app pin its expensive wrapping content for the
-///    duration, so no pass re-wraps the document for a size no frame shows.
+///    drag-end hooks let the app pin its wrapping width in coarse steps for the
+///    duration, so no pass re-wraps the document for every intermediate size.
 ///    One final pass settles the content exactly on the final size.
 /// </summary>
 public static class ResizeHelper

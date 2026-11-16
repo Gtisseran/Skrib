@@ -58,15 +58,15 @@ namespace Skrib
             // Keeps the content tracking the window during a resize drag (budgeted
             // synchronous layout passes) and removes the black bands that flash at
             // the window edges (platform behavior, see ResizeHelper). The drag
-            // callbacks pin the wrapping content to its current width for the
-            // duration: re-wrapping the document for every intermediate size is the
-            // dominant per-frame cost, and it is what makes edge-anchored content
-            // (settings button, bottom bar) trail the window.
+            // callbacks pin the wrapping width in coarse steps for the duration:
+            // re-wrapping the document for every intermediate size is the dominant
+            // per-frame cost, while a fully pinned editor would float mid-window
+            // with its border and the band color showing past its edge.
             ResizeHelper.Attach(
                 WindowNative.GetWindowHandle(this),
-                layoutTick: () => RootGrid.UpdateLayout(),
-                dragStarted: FreezeResizeWrapping,
-                dragEnded: UnfreezeResizeWrapping);
+                layoutTick: UpdateResizeLayoutTick,
+                dragStarted: PinResizeWrapping,
+                dragEnded: UnpinResizeWrapping);
             InitializeContextMenu();
             SetMinimumWindowSize();
             SetWindowIcon();
@@ -86,39 +86,63 @@ namespace Skrib
             _isInitialized = true;
         }
 
-        // Pins the visible wrapping content (editor or Markdown preview) to its
-        // current width while a resize drag lasts (see ResizeHelper.Attach). A
-        // wrapping re-layout for every intermediate size is the dominant per-frame
-        // cost during a drag; pinning stops it in both directions, and the settle
-        // pass at drag end re-wraps the document exactly once. Both bounds are
-        // pinned, plus the alignment: Width alone would center the element in its
-        // slot (explicit size + Stretch centers), and MaxWidth alone would let the
-        // window shrink past the pinned width and re-wrap anyway. While pinned the
-        // editor stays flush with the left edge — the band color extends it when
-        // the window grows, and the window edge clips it when it shrinks.
-        private FrameworkElement? _resizeFrozenWrap;
-        private HorizontalAlignment _resizeFrozenAlignment;
+        // Pins the wrapping width of the visible content (editor or Markdown
+        // preview) in coarse steps while a resize drag lasts (see
+        // ResizeHelper.Attach). A wrapping re-layout for every intermediate size is
+        // the dominant per-frame cost during a drag, but a fully pinned editor
+        // floats mid-window with its border and the band color showing past its
+        // edge — hence the step: the editor re-wraps once per step and stays
+        // within half a step of the window edge, close enough that neither is
+        // visible. Both bounds are pinned, plus the alignment: Width alone would
+        // center the element in its slot (explicit size + Stretch centers), and
+        // MaxWidth alone would let the window shrink past the pin and re-wrap
+        // anyway. The settle pass at drag end re-wraps the document exactly once.
+        private const double ResizeWrapStepPx = 32;
+        private FrameworkElement? _resizePinnedWrap;
+        private double _resizePinnedWidth;
 
-        private void FreezeResizeWrapping()
+        private void PinResizeWrapping()
         {
             var target = _showMarkdownPreview ? (FrameworkElement?)MarkdownPreviewHost : (FrameworkElement?)Editor;
             if (target is null || target.Visibility != Visibility.Visible) return;
             double width = target.ActualWidth;
             if (double.IsNaN(width) || width <= 0) return;
-            _resizeFrozenWrap = target;
-            _resizeFrozenAlignment = target.HorizontalAlignment;
+            // Pinned exactly at the current width so a pure window move (which
+            // also enters the drag loop) never shifts the editor.
+            _resizePinnedWrap = target;
+            _resizePinnedWidth = width;
             target.HorizontalAlignment = HorizontalAlignment.Left;
             target.MinWidth = width;
             target.MaxWidth = width;
         }
 
-        private void UnfreezeResizeWrapping()
+        // Runs on each budgeted layout tick of a drag, before the layout pass.
+        private void UpdateResizeLayoutTick()
         {
-            if (_resizeFrozenWrap is null) return;
-            _resizeFrozenWrap.MinWidth = 0;
-            _resizeFrozenWrap.MaxWidth = double.PositiveInfinity;
-            _resizeFrozenWrap.HorizontalAlignment = _resizeFrozenAlignment;
-            _resizeFrozenWrap = null;
+            UpdateResizeWrapPin();
+            RootGrid.UpdateLayout();
+        }
+
+        private void UpdateResizeWrapPin()
+        {
+            if (_resizePinnedWrap is null) return;
+            double slot = RootGrid.ActualWidth;
+            if (double.IsNaN(slot) || slot <= 0) return;
+            double stepped = _resizePinnedWidth + Math.Round((slot - _resizePinnedWidth) / ResizeWrapStepPx) * ResizeWrapStepPx;
+            if (stepped == _resizePinnedWidth) return;
+            _resizePinnedWidth = stepped;
+            _resizePinnedWrap.MinWidth = stepped;
+            _resizePinnedWrap.MaxWidth = stepped;
+        }
+
+        private void UnpinResizeWrapping()
+        {
+            if (_resizePinnedWrap is null) return;
+            _resizePinnedWrap.MinWidth = 0;
+            _resizePinnedWrap.MaxWidth = double.PositiveInfinity;
+            // Both pinned targets default to Stretch and nothing else mutates it.
+            _resizePinnedWrap.HorizontalAlignment = HorizontalAlignment.Stretch;
+            _resizePinnedWrap = null;
         }
 
         // Smooth editor scrolling. The preview's ScrollViewer animates mouse-wheel
