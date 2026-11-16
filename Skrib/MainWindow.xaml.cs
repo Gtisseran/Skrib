@@ -55,10 +55,18 @@ namespace Skrib
         {
             this.InitializeComponent();
             ConfigureCustomTitleBar();
-            // Keeps the content tracking the window during a resize drag (coalesced
-            // layout ticks per frame) and removes the black bands that flash at the
-            // window edges (platform behavior, see ResizeHelper).
-            ResizeHelper.Attach(WindowNative.GetWindowHandle(this), () => RootGrid.UpdateLayout());
+            // Keeps the content tracking the window during a resize drag (budgeted
+            // synchronous layout passes) and removes the black bands that flash at
+            // the window edges (platform behavior, see ResizeHelper). The drag
+            // callbacks pin the wrapping content to its current width for the
+            // duration: re-wrapping the document for every intermediate size is the
+            // dominant per-frame cost, and it is what makes edge-anchored content
+            // (settings button, bottom bar) trail the window.
+            ResizeHelper.Attach(
+                WindowNative.GetWindowHandle(this),
+                layoutTick: () => RootGrid.UpdateLayout(),
+                dragStarted: FreezeResizeWrapping,
+                dragEnded: UnfreezeResizeWrapping);
             InitializeContextMenu();
             SetMinimumWindowSize();
             SetWindowIcon();
@@ -76,6 +84,31 @@ namespace Skrib
             UpdateWordWrapState();
             Editor.Loaded += Editor_Loaded;
             _isInitialized = true;
+        }
+
+        // Pins the visible wrapping content (editor or Markdown preview) to its
+        // current width while a resize drag lasts (see ResizeHelper.Attach). A
+        // wrapping re-layout for every intermediate size is the dominant per-frame
+        // cost during a drag; pinning stops it, the band color fills the strip
+        // beyond the pinned width in the editor tone, and the settle pass at drag
+        // end re-wraps the document exactly once.
+        private FrameworkElement? _resizeFrozenWrap;
+
+        private void FreezeResizeWrapping()
+        {
+            var target = _showMarkdownPreview ? (FrameworkElement?)MarkdownPreviewHost : (FrameworkElement?)Editor;
+            if (target is null || target.Visibility != Visibility.Visible) return;
+            double width = target.ActualWidth;
+            if (double.IsNaN(width) || width <= 0) return;
+            _resizeFrozenWrap = target;
+            target.Width = width;
+        }
+
+        private void UnfreezeResizeWrapping()
+        {
+            if (_resizeFrozenWrap is null) return;
+            _resizeFrozenWrap.Width = double.NaN;
+            _resizeFrozenWrap = null;
         }
 
         // Smooth editor scrolling. The preview's ScrollViewer animates mouse-wheel

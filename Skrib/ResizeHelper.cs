@@ -21,8 +21,10 @@ namespace Skrib;
 ///    routes the repaints through DWM double buffering, and each WM_SIZE gets one
 ///    budgeted layout pass, run synchronously after the original proc has resized
 ///    the XAML island so edge-anchored content (title bar buttons, bottom bar)
-///    tracks the window live instead of trailing by frames; one final pass
-///    settles the content exactly on the final size.
+///    tracks the window live instead of trailing by frames. The drag-start and
+///    drag-end hooks let the app pin its expensive wrapping content for the
+///    duration, so no pass re-wraps the document for a size no frame shows.
+///    One final pass settles the content exactly on the final size.
 /// </summary>
 public static class ResizeHelper
 {
@@ -110,14 +112,19 @@ public static class ResizeHelper
     // Layout pass for the XAML island: one budgeted pass per WM_SIZE during a
     // drag, plus one final pass when the drag ends (WM_EXITSIZEMOVE).
     private static Action? _layoutTick;
+    // Drag lifecycle hooks: the app pins its wrapping content between them so
+    // the layout passes never re-wrap the document for intermediate sizes.
+    private static Action? _dragStarted;
+    private static Action? _dragEnded;
     private static bool _dragging;
-    // Frame budget between executed layout passes. WM_SIZE tracks the input rate,
-    // so a high report-rate mouse (or a 144 Hz display) would run a full
-    // measure/arrange pass — which re-wraps the whole document — several times
-    // per displayed frame. Capping the ticks at one per ~15 ms keeps live
-    // tracking at frame pace with a bounded cost; the skipped sizes are never
-    // shown anyway, and the band color masks the one-frame trail they leave.
-    private const int MinLayoutTickIntervalMs = 15;
+    // Frame budget between executed layout passes. WM_SIZE tracks the input
+    // rate, so a high report-rate mouse (or a 144 Hz display) would run a full
+    // measure/arrange pass several times per displayed frame. With the app
+    // pinning its wrapping content (drag-started hook) the passes are cheap,
+    // so ~8 ms keeps tracking tight while still bounding the message-storm
+    // overhead; the skipped sizes are never shown anyway, and the band color
+    // masks the one-frame trail they leave.
+    private const int MinLayoutTickIntervalMs = 8;
     // Seeded so the very first WM_SIZE of a drag passes the budget gate.
     private static long _lastLayoutTickAt = -MinLayoutTickIntervalMs;
     // Trailing-strip color, cached as a GDI brush (COLORREF 0x00BBGGRR + HBRUSH).
@@ -126,13 +133,17 @@ public static class ResizeHelper
 
     /// <summary>
     /// Applies the resize treatments once, on the UI thread, at startup. The optional
-    /// <paramref name="layoutTick"/> runs a coalesced layout pass during and after a
-    /// resize drag so the XAML content tracks the window.
+    /// <paramref name="layoutTick"/> runs a budgeted layout pass during and after a
+    /// resize drag so the XAML content tracks the window. <paramref name="dragStarted"/>
+    /// and <paramref name="dragEnded"/> frame the drag (WM_ENTERSIZEMOVE ..
+    /// WM_EXITSIZEMOVE) so the app can pin expensive wrapping content while it lasts.
     /// </summary>
-    public static void Attach(nint hwnd, Action? layoutTick)
+    public static void Attach(nint hwnd, Action? layoutTick, Action? dragStarted = null, Action? dragEnded = null)
     {
         ExtendDwmSheet(hwnd);
         _layoutTick = layoutTick;
+        _dragStarted = dragStarted;
+        _dragEnded = dragEnded;
         SubclassWndProc(hwnd);
     }
 
@@ -199,6 +210,8 @@ public static class ResizeHelper
             case WM_ENTERSIZEMOVE:
                 _dragging = true;
                 ToggleComposited(hwnd, on: true);
+                // Freeze before the first WM_SIZE of the drag can trigger work.
+                RunDragHook(_dragStarted);
                 break;
 
             case WM_EXITSIZEMOVE:
@@ -232,14 +245,27 @@ public static class ResizeHelper
                 break;
 
             case WM_EXITSIZEMOVE:
-                // Fires after both moves and resizes; one final unbudgeted pass
-                // settles the content exactly on the final size (a no-op when the
-                // per-frame ticks already caught up).
+                // Fires after both moves and resizes: unfreeze first so the settle
+                // pass re-wraps the document exactly once, on the final size.
+                RunDragHook(_dragEnded);
                 RunLayoutTick();
                 break;
         }
 
         return result;
+    }
+
+    // A hook failure must never break the resize, so everything is caught and logged.
+    private static void RunDragHook(Action? hook)
+    {
+        try
+        {
+            hook?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.Write($"Error during resize drag hook: {ex.Message}");
+        }
     }
 
     // Runs the layout tick synchronously inside the message dispatch. XAML layout
